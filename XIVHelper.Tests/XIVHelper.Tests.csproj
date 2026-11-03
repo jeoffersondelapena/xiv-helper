@@ -15,6 +15,7 @@
 		<Compile Include="..\XIVHelper\FrameWatch.cs" Link="FrameWatch.cs" />
 		<Compile Include="..\XIVHelper\DiagLog.cs" Link="DiagLog.cs" />
 		<Compile Include="..\XIVHelper\LoginReport.cs" Link="LoginReport.cs" />
+		<Compile Include="..\XIVHelper\HotbarButton\RsrState.cs" Link="RsrState.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

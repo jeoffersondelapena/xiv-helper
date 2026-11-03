@@ -8,7 +8,19 @@ One in-game command that brings the ACT overlay stack back and relays the Mac's 
 ```
 /helper            how the IINACT parser and the Browsingway renderer are right now
 /helper fix        restart whichever layer is unwell, or load a plugin that is missing
+/helper button     a window with the RSR hotbar button to drag onto a hotbar slot
 ```
+
+## The RSR hotbar button
+
+Rotation Solver Reborn runs in Manual mode here and is started and stopped by hand, so the plugin adds one
+action to the game's hotbars: it shows whether RSR is running (two icons) and a press flips it between Off
+and Manual through `/rotation manual` and `/rotation off`. The game never shipped such an action, so the
+plugin injects a row the way Wrath Combo does (`XIVHelper/HotbarButton/`, ported under its BSD 3-Clause
+licence, icons included; see THIRD-PARTY-NOTICES.md). RSR exposes no IPC getter for its state, so the state
+is read from its `DataCenter` statics by reflection; a renamed field shows as "RSR not loaded" until the
+plugin is adjusted. The hooks rest on signatures a game patch can move; when they do, the button fails to
+set up, the plugin logs it and everything else keeps working.
 
 It is a Dalamud plugin that depends on nothing but Dalamud, so it still exists when IINACT or
 Browsingway failed to load. It talks to both over Dalamud's plugin-to-plugin channel (`IINACT.Healthy`,

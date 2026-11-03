@@ -4,6 +4,7 @@ using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Game.Chat;
 using Dalamud.Plugin.Services;
+using XIVHelper.HotbarButton;
 
 namespace XIVHelper;
 
@@ -33,6 +34,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly DiagLog? diag;
     private readonly FrameWatch? frameWatch;
+    private readonly RsrButton? rsrButton;
     private int busy;
     private DateTime? reminderShownAt;
     private DateTime lastReminderCheck = DateTime.MinValue;
@@ -40,7 +42,8 @@ public sealed class Plugin : IDalamudPlugin
     private int notesSeen = -1;
     private string lastNotes = "";
 
-    public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog log, IFramework framework, IClientState clientState, IObjectTable objects)
+    public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog log, IFramework framework, IClientState clientState, IObjectTable objects,
+                  ISigScanner sigScanner, IGameInteropProvider hooks, ITextureProvider textures)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -69,8 +72,19 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell",
+            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button",
         });
+
+        try
+        {
+            rsrButton = new RsrButton(pluginInterface, sigScanner, hooks, textures, framework, commands, clientState, objects, log);
+        }
+        catch (Exception ex)
+        {
+            // a game patch can move the hooked functions; the rest of the plugin must not go down with the button
+            log.Error(ex, "the RSR hotbar button could not be set up");
+            diag?.Write($"RSR button unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     public void Dispose()
@@ -80,6 +94,7 @@ public sealed class Plugin : IDalamudPlugin
         clientState.TerritoryChanged -= OnTerritoryChanged;
         framework.Update -= OnUpdate;
         commands.RemoveHandler(Command);
+        rsrButton?.Dispose();
         frameWatch?.Dispose();
         diag?.Write(DiagLog.UnloadingLine(GameClosing()));
         diag?.Dispose();
@@ -277,6 +292,15 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
+        if (args.Trim() == "button")
+        {
+            if (rsrButton is null)
+                chat.PrintError("XIV Helper: the RSR button could not be set up in this session; see the Dalamud log.");
+            else
+                rsrButton.OpenWindow();
+            return;
+        }
+
         var (iinact, browsingway) = Probe();
         chat.Print($"XIV Helper: {Doctor.Summary(iinact, browsingway)}.");
         diag?.Write($"/helper {args.Trim()}: {Doctor.Summary(iinact, browsingway)}");
