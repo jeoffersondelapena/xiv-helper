@@ -1,4 +1,4 @@
-namespace XIVDoctor;
+namespace XIVHelper;
 
 public enum Step
 {

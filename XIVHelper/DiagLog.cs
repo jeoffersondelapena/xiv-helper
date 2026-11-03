@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace XIVDoctor;
+namespace XIVHelper;
 
 // Two clients share dalamud.log; the one that loses that file keeps no record.
 public sealed class DiagLog : IDisposable
@@ -16,7 +16,7 @@ public sealed class DiagLog : IDisposable
     public DiagLog(string directory, DateTime startedAt, int processId)
     {
         Directory.CreateDirectory(directory);
-        foreach (var stale in FilesToPrune(Directory.GetFiles(directory, "doctor-*.log"), DateTime.Now))
+        foreach (var stale in FilesToPrune(Directory.GetFiles(directory, "helper-*.log"), DateTime.Now))
         {
             try { File.Delete(stale); }
             catch (IOException) { }
@@ -26,7 +26,7 @@ public sealed class DiagLog : IDisposable
         writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true };
     }
 
-    public static string FileName(DateTime startedAt, int processId) => $"doctor-{startedAt:yyyyMMdd-HHmmss}-{processId}.log";
+    public static string FileName(DateTime startedAt, int processId) => $"helper-{startedAt:yyyyMMdd-HHmmss}-{processId}.log";
 
     public const int HeartbeatSeconds = 5;
 

@@ -1,4 +1,4 @@
-namespace XIVDoctor;
+namespace XIVHelper;
 
 // A frozen frame loop cannot report itself; a timer thread notices the missing ticks and says what it still can.
 public sealed class FrameWatch : IDisposable

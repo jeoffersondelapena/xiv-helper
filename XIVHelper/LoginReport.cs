@@ -1,4 +1,4 @@
-namespace XIVDoctor;
+namespace XIVHelper;
 
 public static class LoginReport
 {
@@ -16,7 +16,7 @@ public static class LoginReport
         => anyNotes && (lastShown is null || (now - lastShown.Value).TotalMinutes >= ReminderMinutes);
 
     public static string Reminder(IReadOnlyList<string> attention)
-        => "XIV Doctor: attention, still open. " + string.Join(" ", attention.Select(p => p.TrimEnd('.') + ".")) + " " + Instruction;
+        => "XIV Helper: attention, still open. " + string.Join(" ", attention.Select(p => p.TrimEnd('.') + ".")) + " " + Instruction;
 
     /// <summary>Print once both layers answered (or the wait ran out) and the login flood has gone quiet, so the line lands last.</summary>
     public static bool ReadyToPrint(double sinceLogin, double? sinceZone, double? sinceChat, bool bothHealthy)
@@ -31,16 +31,16 @@ public static class LoginReport
     {
         var fine = iinact.Loaded && iinact.Healthy && browsingway.Loaded && browsingway.Healthy;
         if (fine && attention.Count == 0)
-            return $"XIV Doctor: all good; parser healthy, {browsingway.Status}.";
+            return $"XIV Helper: all good; parser healthy, {browsingway.Status}.";
         var parts = new List<string>();
         if (!fine)
         {
             var parser = iinact.Loaded ? (iinact.Healthy ? "healthy" : "unwell") : iinact.Status;
             var suffix = waitedOut ? $" (still not ready after {HealthWaitSeconds:F0} s)" : "";
-            parts.Add($"IINACT {parser} | Browsingway {browsingway.Status}{suffix}; use /doctor fix");
+            parts.Add($"IINACT {parser} | Browsingway {browsingway.Status}{suffix}; use /helper fix");
         }
         parts.AddRange(attention);
-        var line = "XIV Doctor: attention. " + string.Join(" ", parts.Select(p => p.TrimEnd('.') + "."));
+        var line = "XIV Helper: attention. " + string.Join(" ", parts.Select(p => p.TrimEnd('.') + "."));
         return attention.Count > 0 ? line + " " + Instruction : line;
     }
 }

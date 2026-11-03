@@ -1,4 +1,4 @@
-namespace XIVDoctor;
+namespace XIVHelper;
 
 // A rebuilt dev plugin never reloads by itself here: Wine passes no file-change events from the Mac side, so the
 // DLL's timestamp is polled instead. A change counts once it has stopped moving, so a build in progress is not loaded.

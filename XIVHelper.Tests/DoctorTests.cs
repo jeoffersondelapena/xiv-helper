@@ -1,4 +1,4 @@
-using XIVDoctor;
+using XIVHelper;
 using Xunit;
 
 public class DoctorTests
