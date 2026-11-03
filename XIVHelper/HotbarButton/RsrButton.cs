@@ -113,8 +113,11 @@ public sealed unsafe class RsrButton : IDisposable
             ImGui.TextUnformatted("Drag this icon onto a hotbar slot. The slot then shows the state and a press flips it.");
             if (manager.IconTextures.TryGetValue(ToggleIcon, out var tex) && tex.TryGetWrap(out var wrap, out _))
             {
-                ImGui.Image(wrap.Handle, new Vector2(64, 64));
-                if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+                // a button, not a plain image: only an interactive item takes the mouse press, a plain one lets it move the window
+                ImGui.PushID("rsrDrag");
+                ImGui.ImageButton(wrap.Handle, new Vector2(64, 64));
+                ImGui.PopID();
+                if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left, 2f))
                     dragging = true;
             }
         }
