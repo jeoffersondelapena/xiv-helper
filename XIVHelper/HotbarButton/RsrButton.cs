@@ -19,6 +19,7 @@ public sealed unsafe class RsrButton : IDisposable
     // real icon ids the game loads before the custom texture replaces them (the ones Wrath Combo uses)
     private const uint ToggleIcon = 1527, OnIcon = 1523, OffIcon = 1526;
     private const string SigReceiveEvent = "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC 20 48 8B 7C 24 ?? 48 8B D9";
+    private const string SigIsActionReplaceable = "40 53 48 83 EC 20 8B D9 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 1F";
 
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commands;
@@ -27,6 +28,7 @@ public sealed unsafe class RsrButton : IDisposable
     private readonly IPluginLog log;
     private readonly CustomActionManager manager;
     private readonly Hook<GetAdjustedActionIdDelegate> adjustedHook;
+    private readonly Hook<IsActionReplaceableDelegate> replaceableHook;
     private readonly Hook<UseActionDelegate> useActionHook;
     private readonly Hook<AddonActionBarBase.Delegates.ReceiveEvent> receiveEventHook;
     private (int Hotbar, int Slot)? hoveredSlot;
@@ -47,9 +49,12 @@ public sealed unsafe class RsrButton : IDisposable
         manager.Register(new CustomAction(On, "RSR Manual", "Rotation Solver Reborn is running in Manual mode; press to switch it off.", OnIcon, Path.Combine(resources, "RsrOn.png")));
         manager.Register(new CustomAction(Off, "RSR Off", "Rotation Solver Reborn is off; press to start it in Manual mode.", OffIcon, Path.Combine(resources, "RsrOff.png")));
         adjustedHook = hooks.HookFromAddress<GetAdjustedActionIdDelegate>(ActionManager.Addresses.GetAdjustedActionId.Value, GetAdjustedDetour);
+        // the hotbar only asks for an adjusted action (and its icon) when the base action is flagged replaceable, like a combo step
+        replaceableHook = hooks.HookFromAddress<IsActionReplaceableDelegate>(sig.ScanText(SigIsActionReplaceable), IsActionReplaceableDetour);
         useActionHook = hooks.HookFromAddress<UseActionDelegate>(ActionManager.Addresses.UseAction.Value, UseActionDetour);
         receiveEventHook = hooks.HookFromAddress<AddonActionBarBase.Delegates.ReceiveEvent>(sig.ScanText(SigReceiveEvent), ReceiveEventDetour);
         adjustedHook.Enable();
+        replaceableHook.Enable();
         useActionHook.Enable();
         receiveEventHook.Enable();
         pluginInterface.UiBuilder.Draw += Draw;
@@ -64,10 +69,14 @@ public sealed unsafe class RsrButton : IDisposable
     {
         pluginInterface.UiBuilder.Draw -= Draw;
         adjustedHook.Dispose();
+        replaceableHook.Dispose();
         useActionHook.Dispose();
         receiveEventHook.Dispose();
         manager.Dispose();
     }
+
+    private ulong IsActionReplaceableDetour(uint actionId)
+        => actionId == Toggle ? 1 : replaceableHook.Original(actionId);
 
     private uint GetAdjustedDetour(ActionManager* self, uint actionId)
         => actionId == Toggle ? Shown(RsrState.Running) : adjustedHook.Original(self, actionId);
@@ -158,6 +167,7 @@ public sealed unsafe class RsrButton : IDisposable
     }
 
     private delegate uint GetAdjustedActionIdDelegate(ActionManager* self, uint actionId);
+    private delegate ulong IsActionReplaceableDelegate(uint actionId);
     private delegate bool UseActionDelegate(ActionManager* self, ActionType type, uint actionId, ulong targetId, uint extraParam,
                                             ActionManager.UseActionMode mode, uint comboRouteId, bool* outOptAreaTargeted);
 }
