@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace XIVHelper.HotbarButton;
 
-/// <summary>Rotation Solver Reborn's state, read from its DataCenter statics: it exposes no IPC getter (names as of RSR 7.5.7.14).</summary>
+/// <summary>Rotation Solver Reborn's state: its AutorotationActive IPC when it answers, else its DataCenter statics (names as of RSR 7.5.7.14).</summary>
 internal static class RsrState
 {
     private const BindingFlags Static = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
@@ -10,8 +10,11 @@ internal static class RsrState
     private static PropertyInfo? manual;
     private static DateTime lastLookup = DateTime.MinValue;
 
+    /// <summary>Asks RSR over IPC; null when nothing answers. Set by the button, kept out of here so this file stays testable.</summary>
+    public static Func<bool?>? Probe { get; set; }
+
     /// <summary>True while RSR runs, false while it is off, null when RSR is not loaded.</summary>
-    public static bool? Running => Read(ref state, "State");
+    public static bool? Running => Probe?.Invoke() ?? Read(ref state, "State");
 
     public static bool? Manual => Read(ref manual, "IsManual");
 

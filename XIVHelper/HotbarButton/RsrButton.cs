@@ -2,6 +2,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -16,7 +17,7 @@ public sealed unsafe class RsrButton : IDisposable
     public const uint Toggle = 1_100_001;
     public const uint On = 1_100_002;
     public const uint Off = 1_100_003;
-    // real icon ids the game loads before the custom texture replaces them (the ones Wrath Combo uses)
+    // real ids the game loads before the texture swap, borrowed from Wrath (violet = on, red = off)
     private const uint ToggleIcon = 1527, OnIcon = 1523, OffIcon = 1526;
     private const string SigReceiveEvent = "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC 20 48 8B 7C 24 ?? 48 8B D9";
     private const string SigIsActionReplaceable = "40 53 48 83 EC 20 8B D9 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 1F";
@@ -44,6 +45,12 @@ public sealed unsafe class RsrButton : IDisposable
         this.objects = objects;
         this.log = log;
         manager = new CustomActionManager(sig, hooks, textures, framework, log);
+        var active = pluginInterface.GetIpcSubscriber<bool>("RotationSolverReborn.AutorotationActive");
+        RsrState.Probe = () =>
+        {
+            try { return active.InvokeFunc(); }
+            catch (Exception) { return null; }   // no provider: RSR not loaded, or a build without the call
+        };
         var resources = Path.Combine(pluginInterface.AssemblyLocation.DirectoryName!, "Resources");
         manager.Register(new CustomAction(Toggle, "RSR Toggle", "Switches Rotation Solver Reborn between Off and Manual.", ToggleIcon, Path.Combine(resources, "RsrToggle.png")));
         manager.Register(new CustomAction(On, "RSR Manual", "Rotation Solver Reborn is running in Manual mode; press to switch it off.", OnIcon, Path.Combine(resources, "RsrOn.png")));
@@ -68,6 +75,7 @@ public sealed unsafe class RsrButton : IDisposable
     public void Dispose()
     {
         pluginInterface.UiBuilder.Draw -= Draw;
+        RsrState.Probe = null;
         adjustedHook.Dispose();
         replaceableHook.Dispose();
         useActionHook.Dispose();
