@@ -78,13 +78,24 @@ public sealed class Plugin : IDalamudPlugin
         try
         {
             rsrButton = new RsrButton(pluginInterface, sigScanner, hooks, textures, framework, commands, clientState, objects, log);
+            AttentionFile.Set(AttentionPath, "RSRButton", null);
         }
         catch (Exception ex)
         {
             // a game patch can move the hooked functions; the rest of the plugin must not go down with the button
             log.Error(ex, "the RSR hotbar button could not be set up");
             diag?.Write($"RSR button unavailable: {ex.GetType().Name}: {ex.Message}");
+            AttentionFile.Set(AttentionPath, "RSRButton", $"the RSR hotbar button could not be set up at {DateTime.Now:HH:mm} ({ex.GetType().Name}: {ex.Message})");
         }
+        pluginInterface.UiBuilder.OpenMainUi += OpenButtonWindow;
+    }
+
+    private void OpenButtonWindow()
+    {
+        if (rsrButton is null)
+            chat.PrintError("XIV Helper: the RSR button could not be set up in this session; see the Dalamud log.");
+        else
+            rsrButton.OpenWindow();
     }
 
     public void Dispose()
@@ -94,6 +105,7 @@ public sealed class Plugin : IDalamudPlugin
         clientState.TerritoryChanged -= OnTerritoryChanged;
         framework.Update -= OnUpdate;
         commands.RemoveHandler(Command);
+        pluginInterface.UiBuilder.OpenMainUi -= OpenButtonWindow;
         rsrButton?.Dispose();
         frameWatch?.Dispose();
         diag?.Write(DiagLog.UnloadingLine(GameClosing()));
@@ -294,10 +306,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         if (args.Trim() == "button")
         {
-            if (rsrButton is null)
-                chat.PrintError("XIV Helper: the RSR button could not be set up in this session; see the Dalamud log.");
-            else
-                rsrButton.OpenWindow();
+            OpenButtonWindow();
             return;
         }
 
