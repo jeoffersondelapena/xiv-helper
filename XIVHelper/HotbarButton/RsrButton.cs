@@ -26,6 +26,8 @@ public sealed unsafe class RsrButton : IDisposable
     private readonly ICommandManager commands;
     private readonly IClientState client;
     private readonly IObjectTable objects;
+    private readonly IFramework framework;
+    private bool? running;
     private readonly IPluginLog log;
     private readonly CustomActionManager manager;
     private readonly Hook<GetAdjustedActionIdDelegate> adjustedHook;
@@ -48,9 +50,13 @@ public sealed unsafe class RsrButton : IDisposable
         var active = pluginInterface.GetIpcSubscriber<bool>("RotationSolverReborn.AutorotationActive");
         RsrState.Probe = () =>
         {
+            if (!active.HasFunction)
+                return null;   // RSR not loaded yet: asking anyway throws, and that was once per hotbar slot per frame
             try { return active.InvokeFunc(); }
-            catch (Exception) { return null; }   // no provider: RSR not loaded, or a build without the call
+            catch (Exception) { return null; }
         };
+        this.framework = framework;
+        framework.Update += Refresh;
         var resources = Path.Combine(pluginInterface.AssemblyLocation.DirectoryName!, "Resources");
         manager.Register(new CustomAction(Toggle, "RSR Toggle", "Switches Rotation Solver Reborn between Off and Manual.", ToggleIcon, Path.Combine(resources, "RsrToggle.png")));
         manager.Register(new CustomAction(On, "RSR Manual", "Rotation Solver Reborn is running in Manual mode; press to switch it off.", OnIcon, Path.Combine(resources, "RsrOn.png")));
@@ -75,6 +81,7 @@ public sealed unsafe class RsrButton : IDisposable
     public void Dispose()
     {
         pluginInterface.UiBuilder.Draw -= Draw;
+        framework.Update -= Refresh;
         RsrState.Probe = null;
         adjustedHook.Dispose();
         replaceableHook.Dispose();
@@ -86,8 +93,10 @@ public sealed unsafe class RsrButton : IDisposable
     private ulong IsActionReplaceableDetour(uint actionId)
         => actionId == Toggle ? 1 : replaceableHook.Original(actionId);
 
+    private void Refresh(IFramework fw) => running = RsrState.Running;
+
     private uint GetAdjustedDetour(ActionManager* self, uint actionId)
-        => actionId == Toggle ? Shown(RsrState.Running) : adjustedHook.Original(self, actionId);
+        => actionId == Toggle ? Shown(running) : adjustedHook.Original(self, actionId);
 
     private bool UseActionDetour(ActionManager* self, ActionType type, uint actionId, ulong targetId, uint extraParam,
                                  ActionManager.UseActionMode mode, uint comboRouteId, bool* outOptAreaTargeted)
@@ -101,6 +110,7 @@ public sealed unsafe class RsrButton : IDisposable
     private void Press(uint actionId)
     {
         var running = RsrState.Running;
+        this.running = running;
         if (running is null)
         {
             log.Warning("RSR button pressed, but Rotation Solver Reborn is not loaded");
@@ -125,7 +135,7 @@ public sealed unsafe class RsrButton : IDisposable
             return;
         if (ImGui.Begin("XIV Helper: RSR button", ref windowOpen, ImGuiWindowFlags.AlwaysAutoResize))
         {
-            var state = RsrState.Running switch { true => "Manual (running)", false => "Off", null => "RSR not loaded" };
+            var state = running switch { true => "Manual (running)", false => "Off", null => "RSR not loaded" };
             ImGui.TextUnformatted($"Rotation Solver Reborn: {state}");
             ImGui.TextUnformatted("Drag this icon onto a hotbar slot. The slot then shows the state and a press flips it.");
             if (manager.IconTextures.TryGetValue(ToggleIcon, out var tex) && tex.TryGetWrap(out var wrap, out _))

@@ -13,8 +13,9 @@ internal static class RsrState
     /// <summary>Asks RSR over IPC; null when nothing answers. Set by the button, kept out of here so this file stays testable.</summary>
     public static Func<bool?>? Probe { get; set; }
 
-    /// <summary>True while RSR runs, false while it is off, null when RSR is not loaded.</summary>
-    public static bool? Running => Probe?.Invoke() ?? Read(ref state, "State");
+    /// <summary>True while RSR runs, false while it is off, null when RSR is not loaded. The static is read first: it is a
+    /// plain property, while an IPC call runs RSR's own code on the game thread (a boot froze after that, 2026-11-03).</summary>
+    public static bool? Running => Read(ref state, "State") ?? Probe?.Invoke();
 
     public static bool? Manual => Read(ref manual, "IsManual");
 
