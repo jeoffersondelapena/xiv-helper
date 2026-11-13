@@ -99,6 +99,15 @@ public static class ReviveWatch
 
     public const string InFate = "InFate";
     public const string InCriticalEncounter = "InCriticalEncounter";
+    public const string InCombat = "InCombat";
+    public const double DefendAfterSeconds = 2;
+
+    /// <summary>BOCCHI arms RSR only inside its activities; a stray mob leaves the character standing. After two seconds of its
+    /// InCombat state with RSR off, during a run, RSR is armed; BOCCHI switches it off again when the state moves on.</summary>
+    public static bool NeedsSelfDefence(string? state, double inCombatForSeconds, bool rsrActive, bool onRun) =>
+        onRun && state == InCombat && inCombatForSeconds >= DefendAfterSeconds && !rsrActive;
+
+    public const string DefendLine = "a stray fight with RSR off; set it to BOCCHI's mode.";
 
     /// <summary>Whether the death is still "inside an activity": only a death BOCCHI took in a FATE or a CE holds the return, and only
     /// while that activity still runs. A death to a stray mob, or with BOCCHI's state unreadable, follows the game's own tests.</summary>

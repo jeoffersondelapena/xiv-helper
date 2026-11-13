@@ -41,6 +41,8 @@ internal sealed class ReviveWatcher
     private DateTime? deadSince;
     private string? lastAliveState;
     private string? diedIn;
+    private DateTime? inCombatSince;
+    private bool defended;
     private DateTime lastBusy;
     private ulong lastCaster;
     private DateTime lastAsk = DateTime.MinValue;
@@ -110,6 +112,7 @@ internal sealed class ReviveWatcher
             // BOCCHI's state turns to Dead with the death itself, so the state it died in is the one seen just before
             var state = Bocchi.State(pluginInterface);
             if (state is not null && state != "Dead") lastAliveState = state;
+            SelfDefence(state, now);
         }
         if (dead && deadSince is null)
         {
@@ -191,6 +194,24 @@ internal sealed class ReviveWatcher
     }
 
     private bool Raised() => objects.LocalPlayer?.StatusList.Any(s => s.StatusId == ReviveWatch.Transcendent) ?? false;
+
+    private void SelfDefence(string? state, DateTime now)
+    {
+        if (state != ReviveWatch.InCombat)
+        {
+            inCombatSince = null;
+            defended = false;
+            return;
+        }
+        inCombatSince ??= now;
+        if (defended) return;
+        bool active;
+        try { active = rsrActive.InvokeFunc(); }
+        catch (Exception) { return; }   // RSR not loaded: nothing to arm
+        if (!ReviveWatch.NeedsSelfDefence(state, (now - inCombatSince.Value).TotalSeconds, active, BocchiRun())) return;
+        defended = true;
+        if (ArmHenched()) Say(ReviveWatch.DefendLine);
+    }
 
     private void Say(string line)
     {

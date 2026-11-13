@@ -73,8 +73,11 @@ BOCCHI's state unreadable the game tests alone decide. The 20 s clock restarts w
 raise or a finished FATE starts a fresh wait. Inside BOCCHI's own FATE or CE it keeps waiting for a raise, which is
 likely there and keeps the credit. (Until 2026-11-13 evening the CE test read the character's event id, which the zone
 itself sets, so every death held forever; one did, and the player had to click Return.) BOCCHI
-treats the respawn like any revive and carries on from camp. Four seconds after any revive inside a FATE or CE on a
-BOCCHI run, if RSR reports itself off, the plugin sets it back to Henched, the mode BOCCHI drives it in: RSR's
+treats the respawn like any revive and carries on from camp. BOCCHI arms RSR only inside its own activities, so a stray mob
+that catches the character between them (its InCombat state) is taken standing still, to the death if the mob does not
+leash; after two seconds of that state with RSR off, during a run, the plugin arms RSR in Henched, and BOCCHI switches it
+off again when its state moves on (seen 2026-11-13 21:32, 33 s of being hit, death, raise, the same again). Four seconds
+after any revive inside a FATE or CE on a BOCCHI run, if RSR reports itself off, the plugin sets it back to Henched, the mode BOCCHI drives it in: RSR's
 auto-off-on-death watches for 0 HP, BOCCHI re-arms RSR in the same instant the unconscious flag clears while HP can
 still read 0, so RSR switches itself straight off again and BOCCHI, believing it on, never re-arms it until the next
 activity (seen 2026-11-13 as 24 s of standing still after a raise; inferred from RSR's and BOCCHI's code, since RSR logs

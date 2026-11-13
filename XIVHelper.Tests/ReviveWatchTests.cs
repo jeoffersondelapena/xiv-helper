@@ -102,6 +102,17 @@ public class ReviveWatchTests
     }
 
     [Fact]
+    public void A_stray_fight_with_rsr_off_arms_it_after_two_seconds_on_a_run()
+    {
+        Assert.True(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 2, rsrActive: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 1, rsrActive: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, rsrActive: true, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, rsrActive: false, onRun: false));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InFate, 5, rsrActive: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(null, 5, rsrActive: false, onRun: true));
+    }
+
+    [Fact]
     public void The_notes_name_the_problem_the_time_and_the_consequence()
     {
         var at = new DateTime(2026, 11, 13, 17, 40, 0);
