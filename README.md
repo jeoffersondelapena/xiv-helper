@@ -10,7 +10,7 @@ One in-game command that brings the ACT overlay stack back, relays the Mac's not
 /helper fix        restart whichever layer is unwell, or load a plugin that is missing
 /helper button     a window with the RSR hotbar button to drag onto a hotbar slot
 /helper demiatma   the six demiatma counts and which kinds BOCCHI is told to skip
-/helper horn       re-entry into South Horn after its timer: on, off, or the current state
+/helper horn       re-entry into South or North Horn after its timer: off, on, or the current state
 ```
 
 ## The RSR hotbar button
@@ -94,18 +94,19 @@ treats the respawn like any revive and carries on from camp. The wait comes from
 `revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is left to the
 player. (2026-11-13)
 
-## Back into South Horn after the timer
+## Back into the horn after the timer
 
-`/helper horn on` switches it on, `/helper horn off` off, `/helper horn` shows the state; the setting lives in `horn.txt` in
-the config folder and survives reloads. Off by default.
+On by default: it only ever acts on the timer's kick during a BOCCHI run. `/helper horn off` switches it off, `on` back on,
+`/helper horn` shows the state; the setting lives in `horn.txt` in the config folder and survives reloads.
 
-While the character is in South Horn the plugin reads the instance timer from the game's public content director every
+While the character is in South or North Horn the plugin reads the instance timer from the game's public content director every
 half second. When the zone changes with that reading at 20 s or less the timer did it; a voluntary leave, a disconnect
 or a teleport out shows minutes or hours left and is left alone. BOCCHI must be loaded, and once all six demiatma are
-complete it stays out and says so. The way back follows what the game shows: land in Phantom Village (territory 1269 or
-1278), walk to the Expedition Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick
-the menu entry that names South Horn (the game's SelectString), confirm the yes/no that names it, press Commence on the
-duty window (ContentsFinderConfirm, callback 8), wait for South Horn to load, then after 5 s send `/bocchi illegal on`.
+complete it stays out of South Horn and says so (North Horn has no demiatma, so only the switch and BOCCHI gate it). The
+way back follows what the game shows: land in Phantom Village (territory 1269 or 1278), walk to the Expedition
+Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick the menu entry that names
+the horn you were thrown out of (the game's SelectString), confirm the yes/no that names it, press Commence on the duty
+window (ContentsFinderConfirm, callback 8), wait for that horn to load, then after 5 s send `/bocchi illegal on`.
 Every step has a timeout (90 s, 10 min for the duty window since it waits on a free instance); on a timeout it stops,
 says where, and leaves the rest to the player. The timer reading at each exit goes to the diagnostic log, so the first
 real kick shows whether the 20 s threshold holds. (2026-11-13)

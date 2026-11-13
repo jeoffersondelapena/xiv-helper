@@ -13,13 +13,15 @@ public enum HornStep
     StartBocchi,
 }
 
-/// <summary>Getting back into South Horn after its timer throws the character out, and only then.</summary>
+/// <summary>Getting back into South or North Horn after its timer throws the character out, and only then.</summary>
 public static class HornWatch
 {
     public const uint SouthHorn = 1252;
+    public const uint NorthHorn = 1346;
+    // the coordinator's menu names each horn the way the territory does
+    public static readonly IReadOnlyDictionary<uint, string> Horns = new Dictionary<uint, string> { [SouthHorn] = "South Horn", [NorthHorn] = "North Horn" };
     public static readonly IReadOnlySet<uint> PhantomVillage = new HashSet<uint> { 1269, 1278 };
     public const uint Jeffroy = 1053611;   // Expedition Coordinator, the NPC that admits players
-    public const string MenuText = "South Horn";
     public const string BocchiStart = "/bocchi illegal on";
 
     public const double PollSeconds = 0.5;
@@ -31,31 +33,32 @@ public static class HornWatch
 
     public static bool WasKicked(double? timeLeftAtExit) => timeLeftAtExit is { } t && t <= KickSeconds;
 
-    public static int? MenuIndex(IReadOnlyList<string> entries)
+    public static int? MenuIndex(IReadOnlyList<string> entries, string horn)
     {
         for (var i = 0; i < entries.Count; i++)
-            if (entries[i].Contains(MenuText, StringComparison.OrdinalIgnoreCase)) return i;
+            if (entries[i].Contains(horn, StringComparison.OrdinalIgnoreCase)) return i;
         return null;
     }
 
-    public static bool IsConfirmPrompt(string? prompt) => (prompt ?? "").Contains(MenuText, StringComparison.OrdinalIgnoreCase);
+    public static bool IsConfirmPrompt(string? prompt, string horn) => (prompt ?? "").Contains(horn, StringComparison.OrdinalIgnoreCase);
 
     public static double TimeoutFor(HornStep step) => step == HornStep.Commence ? QueueTimeoutSeconds : StepTimeoutSeconds;
 
-    public static bool ParseToggle(string? text) => string.Equals(text?.Trim(), "on", StringComparison.OrdinalIgnoreCase);
+    // on unless the file says off: the re-entry only ever acts on the timer's kick during a BOCCHI run
+    public static bool ParseToggle(string? text) => !string.Equals(text?.Trim(), "off", StringComparison.OrdinalIgnoreCase);
 
     public static string ToggleLine(bool on) => on
-        ? "re-entry on: when South Horn's timer throws you out, XIV Helper takes you back in and starts BOCCHI."
+        ? "re-entry on: when a horn's timer throws you out during a BOCCHI run, XIV Helper takes you back in and starts BOCCHI."
         : "re-entry off.";
 
-    public static string KickedLine(double timeLeft) => $"South Horn's timer ran out ({timeLeft:0} s left at exit); going back in.";
+    public static string KickedLine(string horn, double timeLeft) => $"{horn}'s timer ran out ({timeLeft:0} s left at exit); going back in.";
 
-    public static string LeftLine(double? timeLeft) => timeLeft is { } t
-        ? $"left South Horn with {t:0} s on the timer; not going back in."
-        : "left South Horn without a timer reading; not going back in.";
+    public static string LeftLine(string horn, double? timeLeft) => timeLeft is { } t
+        ? $"left {horn} with {t:0} s on the timer; not going back in."
+        : $"left {horn} without a timer reading; not going back in.";
 
     public static string GaveUpLine(HornStep step) => $"re-entry stopped at {step}; take it from there by hand.";
 
-    public const string EnteredLine = "back in South Horn; BOCCHI started.";
+    public static string EnteredLine(string horn) => $"back in {horn}; BOCCHI started.";
     public const string DoneLine = "all six demiatma complete; not going back in.";
 }

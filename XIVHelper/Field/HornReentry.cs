@@ -31,7 +31,8 @@ internal sealed class HornReentry
     private readonly ICallGateSubscriber<object> stopMoving;
     private readonly string togglePath;
     private bool enabled;
-    private bool wasInHorn;
+    private uint wasInHorn;
+    private uint target;
     private double? lastTimeLeft;
     private DateTime lastPoll = DateTime.MinValue;
     private DateTime lastAct = DateTime.MinValue;
@@ -96,31 +97,34 @@ internal sealed class HornReentry
 
     private unsafe void WatchTimer(DateTime now)
     {
-        var inHorn = clientState.TerritoryType == HornWatch.SouthHorn;
-        if (inHorn)
+        var territory = clientState.TerritoryType;
+        if (HornWatch.Horns.ContainsKey(territory))
         {
             var director = EventFramework.Instance()->GetPublicContentDirector();
             if (director != null) lastTimeLeft = director->ContentTimeLeft;
-            wasInHorn = true;
+            wasInHorn = territory;
             return;
         }
-        if (!wasInHorn) return;
-        wasInHorn = false;
+        if (wasInHorn == 0) return;
+        var horn = wasInHorn;
+        var name = HornWatch.Horns[horn];
+        wasInHorn = 0;
         var timeLeft = lastTimeLeft;
         lastTimeLeft = null;
-        diag?.Invoke($"horn: left South Horn, timer read {timeLeft?.ToString("0.0") ?? "none"} s");
+        diag?.Invoke($"horn: left {name}, timer read {timeLeft?.ToString("0.0") ?? "none"} s");
         if (!enabled || BocchiLists.Instance(pluginInterface) is null) return;
         if (!HornWatch.WasKicked(timeLeft))
         {
-            diag?.Invoke("horn: " + HornWatch.LeftLine(timeLeft));
+            diag?.Invoke("horn: " + HornWatch.LeftLine(name, timeLeft));
             return;
         }
-        if (DemiatmaWatcher.AllComplete())
+        if (horn == HornWatch.SouthHorn && DemiatmaWatcher.AllComplete())
         {
             Say(HornWatch.DoneLine);
             return;
         }
-        Say(HornWatch.KickedLine(timeLeft!.Value));
+        target = horn;
+        Say(HornWatch.KickedLine(name, timeLeft!.Value));
         Enter(HornStep.Armed, now);
     }
 
@@ -177,7 +181,7 @@ internal sealed class HornReentry
                 var entries = new List<string>();
                 var popup = &menu->PopupMenu.PopupMenu;
                 for (var i = 0; i < popup->EntryCount; i++) entries.Add(popup->EntryNames[i].Value->ToString());
-                if (HornWatch.MenuIndex(entries) is not { } index) { Abort("the coordinator's menu has no South Horn entry"); return; }
+                if (HornWatch.MenuIndex(entries, HornWatch.Horns[target]) is not { } index) { Abort($"the coordinator's menu has no {HornWatch.Horns[target]} entry"); return; }
                 menu->AtkUnitBase.FireCallbackInt(index);
                 Enter(HornStep.Confirm, now);
                 return;
@@ -187,7 +191,7 @@ internal sealed class HornReentry
                 var prompt = (AddonSelectYesno*)Addon("SelectYesno");
                 if (prompt == null) return;
                 var text = prompt->PromptText != null ? prompt->PromptText->NodeText.ToString() : null;
-                if (!HornWatch.IsConfirmPrompt(text)) return;
+                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target])) return;
                 prompt->AtkUnitBase.FireCallbackInt(0);
                 Enter(HornStep.Commence, now);
                 return;
@@ -202,13 +206,13 @@ internal sealed class HornReentry
                 return;
             }
             case HornStep.Entering:
-                if (loading || clientState.TerritoryType != HornWatch.SouthHorn || objects.LocalPlayer is null) return;
+                if (loading || clientState.TerritoryType != target || objects.LocalPlayer is null) return;
                 Enter(HornStep.StartBocchi, now);
                 return;
             case HornStep.StartBocchi:
                 if ((now - stepSince).TotalSeconds < HornWatch.BocchiDelaySeconds) return;
                 commands.ProcessCommand(HornWatch.BocchiStart);
-                Say(HornWatch.EnteredLine);
+                Say(HornWatch.EnteredLine(HornWatch.Horns[target]));
                 step = HornStep.Idle;
                 return;
         }
