@@ -47,7 +47,7 @@ public sealed class Plugin : IDalamudPlugin
     private string lastNotes = "";
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog log, IFramework framework, IClientState clientState, IObjectTable objects,
-                  ISigScanner sigScanner, IGameInteropProvider hooks, ITextureProvider textures, ICondition condition, IGameGui gameGui)
+                  ISigScanner sigScanner, IGameInteropProvider hooks, ITextureProvider textures, ICondition condition, IGameGui gameGui, IDataManager data)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -79,7 +79,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         try
         {
-            revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, diag is null ? null : diag.Write);
+            revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write);
         }
         catch (Exception ex)
         {

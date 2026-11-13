@@ -77,13 +77,17 @@ as its own after a restart.
 
 BOCCHI's own dead state only waits: no answer to the raise prompt, no way back to camp (its Return code refuses while
 unconscious). So in the Occult Crescent (South or North Horn), while BOCCHI is loaded, the plugin takes over the revive
-dialogs the way AutoDuty does in dungeons: a raise offer (the yes/no that shows while the revive agent's own dialog is
-down) is accepted at once; once back on its feet with Transcendent on (which only a raise grants, never a return), it
-sends `/say` with the auto-translate phrase "Thank you." (Completion group 2, row 216) so the raiser reads it in their
-own language; and after 120 s dead with no raise on its way it summons the agent's return dialog and confirms it, with
-one chat line saying so. BOCCHI treats the respawn like any revive and carries on from camp. The wait comes from the
-first line of `revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is
-left to the player. (2026-11-13)
+dialogs. A raise offer ("Accept Raise…", told apart from the return dialog by the game's own Addon texts, rows 112 and
+197/117, so any client language works) is accepted at once. Once back on its feet with Transcendent on (which only a
+raise grants, never a return) it sends `/say` with the auto-translate phrase "Thank you." (Completion group 2, row 216)
+so the raiser reads it in their own language. After 20 s dead with no raise on its way (the revive agent's state is
+neither Revivable nor Reviving) and outside any FATE or critical encounter the character is still part of (the game's
+current FATE, or a dynamic-event id on the character, the same two tests BOCCHI uses), it summons the revive agent's
+return dialog and confirms it, with one line in the local chat log, visible to nobody else. Inside a FATE or CE it keeps
+waiting for a raise, which is likely there and keeps the credit; the return follows as soon as the activity ends. BOCCHI
+treats the respawn like any revive and carries on from camp. The wait comes from the first line of
+`revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is left to the
+player. (2026-11-13)
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
 The first build enables the versioned pre-commit hook (`git config core.hooksPath .githooks`).

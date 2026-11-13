@@ -3,7 +3,11 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Fate;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+using Lumina.Excel.Sheets;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
@@ -22,6 +26,9 @@ internal sealed class ReviveWatcher
     private readonly ICondition condition;
     private readonly IGameGui gameGui;
     private readonly IChatGui chat;
+    private readonly string raisePrefix;
+    private readonly string returnPrefix;
+    private readonly string homePointPrefix;
     private readonly IPluginLog log;
     private readonly Action<string>? diag;
     private readonly int returnAfterSeconds;
@@ -29,12 +36,17 @@ internal sealed class ReviveWatcher
     private DateTime? deadSince;
     private DateTime lastAsk = DateTime.MinValue;
     private bool returnAnnounced;
+    private bool holdAnnounced;
     private DateTime? thanksUntil;
     private string? lastError;
 
     public ReviveWatcher(IDalamudPluginInterface pluginInterface, IClientState clientState, IObjectTable objects, ICondition condition, IGameGui gameGui,
-                         IChatGui chat, IPluginLog log, Action<string>? diag)
+                         IChatGui chat, IPluginLog log, IDataManager data, Action<string>? diag)
     {
+        var addon = data.GetExcelSheet<Addon>();
+        raisePrefix = ReviveWatch.Prefix(addon.GetRowOrDefault(ReviveWatch.RaisePromptRow)?.Text.ToString(), ReviveWatch.RaisePrefixFallback);
+        returnPrefix = ReviveWatch.Prefix(addon.GetRowOrDefault(ReviveWatch.ReturnPromptRow)?.Text.ToString(), ReviveWatch.ReturnPrefixFallback);
+        homePointPrefix = ReviveWatch.Prefix(addon.GetRowOrDefault(ReviveWatch.HomePointPromptRow)?.Text.ToString(), ReviveWatch.ReturnPrefixFallback);
         this.pluginInterface = pluginInterface;
         this.clientState = clientState;
         this.objects = objects;
@@ -74,6 +86,7 @@ internal sealed class ReviveWatcher
             if (BocchiLists.Instance(pluginInterface) is null) return;   // not a BOCCHI run: the player decides
             deadSince = now;
             returnAnnounced = false;
+            holdAnnounced = false;
             diag?.Invoke("revive: dead");
         }
         if (!dead && deadSince is not null)
@@ -97,18 +110,26 @@ internal sealed class ReviveWatcher
         if (deadSince is not { } since) return;
 
         var agent = AgentRevive.Instance();
-        var prompt = (AtkUnitBase*)gameGui.GetAddonByName("SelectYesno").Address;
-        var promptOpen = prompt != null && prompt->IsVisible;
-        var move = ReviveWatch.Next(true, (now - since).TotalSeconds, agent->State != 0, promptOpen, agent->IsAddonShown(), returnAfterSeconds);
+        var prompt = (AddonSelectYesno*)gameGui.GetAddonByName("SelectYesno").Address;
+        var kind = prompt != null && prompt->AtkUnitBase.IsVisible ? Classify(prompt) : PromptKind.None;
+        var raiseOffered = agent->State is ReviveState.Revivable or ReviveState.Reviving;
+        var inActivity = InFateOrCriticalEncounter();
+        var deadFor = (now - since).TotalSeconds;
+        if (inActivity && deadFor >= returnAfterSeconds && !holdAnnounced)
+        {
+            holdAnnounced = true;
+            diag?.Invoke("revive: holding the return until the FATE or CE is over");
+        }
+        var move = ReviveWatch.Next(true, deadFor, raiseOffered, kind, inActivity, returnAfterSeconds);
         switch (move)
         {
             case ReviveMove.AcceptRaise:
-                diag?.Invoke("revive: accepting a raise");
-                prompt->FireCallbackInt(0);
+                diag?.Invoke($"revive: accepting a raise from {agent->ResurrectingPlayerName}");
+                prompt->AtkUnitBase.FireCallbackInt(0);
                 break;
             case ReviveMove.ConfirmReturn:
                 Announce();
-                prompt->FireCallbackInt(0);
+                prompt->AtkUnitBase.FireCallbackInt(0);
                 break;
             case ReviveMove.AskReturn:
                 if ((now - lastAsk).TotalSeconds < ReviveWatch.AskAgainSeconds) break;
@@ -129,6 +150,22 @@ internal sealed class ReviveWatcher
     }
 
     private bool Raised() => objects.LocalPlayer?.StatusList.Any(s => s.StatusId == ReviveWatch.Transcendent) ?? false;
+
+    private unsafe PromptKind Classify(AddonSelectYesno* prompt)
+    {
+        var text = prompt->PromptText != null ? prompt->PromptText->NodeText.ToString() : null;
+        var kind = ReviveWatch.Classify(text, raisePrefix, returnPrefix);
+        return kind == PromptKind.Other ? ReviveWatch.Classify(text, raisePrefix, homePointPrefix) : kind;
+    }
+
+    // the same two tests BOCCHI uses: the FATE the game has the character in, and the dynamic event it is signed up to
+    private unsafe bool InFateOrCriticalEncounter()
+    {
+        var fates = FateManager.Instance();
+        if (fates != null && fates->CurrentFate != null) return true;
+        var player = objects.LocalPlayer;
+        return player != null && ((Character*)player.Address)->EventId.EntryId != 0;
+    }
 
     private unsafe void SayThanks()
     {
