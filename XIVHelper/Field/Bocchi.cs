@@ -9,7 +9,8 @@ namespace XIVHelper.Field;
 internal static class Bocchi
 {
     private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-    private static string? reported;
+    /// <summary>What stopped the run state from being read, or null while it reads; the watchers turn it into one attention note.</summary>
+    public static string? Problem { get; private set; }
 
     /// <summary>BOCCHI's plugin object, or null while it is not loaded.</summary>
     public static object? Instance(IDalamudPluginInterface pluginInterface)
@@ -34,12 +35,14 @@ internal static class Bocchi
         try
         {
             var running = Running(instance);
+            Problem = null;
             if (running is { } known) return known;
             return false;   // container not up yet: BOCCHI is still loading or unloading
         }
         catch (Exception ex)
         {
-            if (reported != ex.Message) problem = reported = ex.Message;
+            if (Problem != ex.Message) problem = ex.Message;
+            Problem = ex.Message;
             return true;
         }
     }

@@ -99,6 +99,13 @@ public static class ReviveWatch
 
     public const string RearmLine = "RSR had switched itself off on the revive; set back to BOCCHI's mode.";
 
+    // attention notes: lowercase problem, time, consequence; XIV Helper repeats them with the paste-it-on instruction until cleared
+    public static string BocchiNote(string problem, DateTime at) =>
+        $"cannot tell whether BOCCHI is running since {at:HH:mm} ({problem}); a loaded BOCCHI counts as running until this is fixed";
+
+    public static string ReviveNote(string problem, DateTime at) =>
+        $"the revive watch stopped working at {at:HH:mm} ({problem}); raises and returns are yours until it heals";
+
     public static string ReturnLine(int waitedSeconds) =>
         $"dead for {waitedSeconds} s with no raise; returning to camp. BOCCHI carries on from there.";
 }

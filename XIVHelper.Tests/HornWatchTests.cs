@@ -45,6 +45,15 @@ public class HornWatchTests
     }
 
     [Fact]
+    public void A_stopped_re_entry_leaves_a_standing_note()
+    {
+        var at = new DateTime(2026, 11, 13, 17, 40, 0);
+        Assert.Equal("re-entry stopped at Commence; take it from there by hand at 17:40; the character is outside the horn",
+            HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Commence).TrimEnd('.'), at));
+        Assert.Equal("the re-entry stopped working at 17:40 (boom); go back in by hand", HornWatch.BrokenNote("boom", at));
+    }
+
+    [Fact]
     public void The_lines_say_what_happened()
     {
         Assert.Equal("South Horn's timer ran out (3 s left at exit); going back in.", HornWatch.KickedLine("South Horn", 3.4));

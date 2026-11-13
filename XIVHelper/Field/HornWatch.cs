@@ -59,5 +59,9 @@ public static class HornWatch
 
     public static string GaveUpLine(HornStep step) => $"re-entry stopped at {step}; take it from there by hand.";
 
+    public static string GaveUpNote(string reason, DateTime at) => $"{reason} at {at:HH:mm}; the character is outside the horn";
+
+    public static string BrokenNote(string problem, DateTime at) => $"the re-entry stopped working at {at:HH:mm} ({problem}); go back in by hand";
+
     public static string EnteredLine(string horn) => $"back in {horn}; BOCCHI started.";
 }

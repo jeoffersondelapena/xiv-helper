@@ -69,7 +69,8 @@ public sealed class Plugin : IDalamudPlugin
         diag?.Write($"XIV Helper {typeof(Plugin).Assembly.GetName().Version} loaded, pid {Environment.ProcessId}");
         try
         {
-            revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write);
+            revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write,
+                (source, note) => AttentionFile.Set(AttentionPath, source, note));
             RsrState.BocchiRun = revive.BocchiRun;
             RsrState.ArmHenched = () => revive.ArmHenched();
         }
@@ -80,7 +81,8 @@ public sealed class Plugin : IDalamudPlugin
         }
         try
         {
-            horn = new HornReentry(pluginInterface, clientState, objects, condition, gameGui, commands, chat, log, diag is null ? null : diag.Write);
+            horn = new HornReentry(pluginInterface, clientState, objects, condition, gameGui, commands, chat, log, diag is null ? null : diag.Write,
+                (source, note) => AttentionFile.Set(AttentionPath, source, note));
         }
         catch (Exception ex)
         {

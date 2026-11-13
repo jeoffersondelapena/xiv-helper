@@ -33,6 +33,9 @@ internal sealed class ReviveWatcher
     private readonly string homePointPrefix;
     private readonly IPluginLog log;
     private readonly Action<string>? diag;
+    private readonly Action<string, string?> attention;
+    private bool bocchiNoted;
+    private bool broken;
     private readonly int returnAfterSeconds;
     private DateTime lastPoll = DateTime.MinValue;
     private DateTime? deadSince;
@@ -49,8 +52,9 @@ internal sealed class ReviveWatcher
     private string? lastError;
 
     public ReviveWatcher(IDalamudPluginInterface pluginInterface, IClientState clientState, IObjectTable objects, ICondition condition, IGameGui gameGui,
-                         IChatGui chat, IPluginLog log, IDataManager data, Action<string>? diag)
+                         IChatGui chat, IPluginLog log, IDataManager data, Action<string>? diag, Action<string, string?> attention)
     {
+        this.attention = attention;
         var addon = data.GetExcelSheet<Addon>();
         raisePrefix = ReviveWatch.Prefix(addon.GetRowOrDefault(ReviveWatch.RaisePromptRow)?.Text.ToString(), ReviveWatch.RaisePrefixFallback);
         returnPrefix = ReviveWatch.Prefix(addon.GetRowOrDefault(ReviveWatch.ReturnPromptRow)?.Text.ToString(), ReviveWatch.ReturnPrefixFallback);
@@ -78,14 +82,21 @@ internal sealed class ReviveWatcher
         {
             Poll(now);
             lastError = null;
+            if (broken)
+            {
+                broken = false;
+                attention("Revive", null);
+            }
         }
         catch (Exception ex)
         {
             if (lastError == ex.Message) return;
             lastError = ex.Message;
+            broken = true;
             log.Error(ex, "revive watch failed");
             diag?.Invoke($"revive: FAILED: {ex.GetType().Name}: {ex.Message}");
             chat.PrintError($"XIV Helper: the revive watch stopped working ({ex.Message}); handle raises and returns by hand.");
+            attention("Revive", ReviveWatch.ReviveNote(ex.Message, DateTime.Now));
         }
     }
 
@@ -208,6 +219,13 @@ internal sealed class ReviveWatcher
             log.Warning($"BOCCHI's run state is out of reach ({problem}); treating a loaded BOCCHI as a run");
             diag?.Invoke($"bocchi: run state out of reach: {problem}");
             chat.PrintError($"XIV Helper: cannot tell whether BOCCHI is running ({problem}); treating it as running while loaded.");
+            attention("BOCCHI", ReviveWatch.BocchiNote(problem, DateTime.Now));
+            bocchiNoted = true;
+        }
+        else if (bocchiNoted && Bocchi.Problem is null)
+        {
+            bocchiNoted = false;
+            attention("BOCCHI", null);
         }
         return on;
     }

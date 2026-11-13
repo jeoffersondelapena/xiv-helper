@@ -89,6 +89,15 @@ public class ReviveWatchTests
     }
 
     [Fact]
+    public void The_notes_name_the_problem_the_time_and_the_consequence()
+    {
+        var at = new DateTime(2026, 11, 13, 17, 40, 0);
+        Assert.Equal("cannot tell whether BOCCHI is running since 17:40 (IAutomator.Enabled is missing); a loaded BOCCHI counts as running until this is fixed",
+            ReviveWatch.BocchiNote("IAutomator.Enabled is missing", at));
+        Assert.Equal("the revive watch stopped working at 17:40 (boom); raises and returns are yours until it heals", ReviveWatch.ReviveNote("boom", at));
+    }
+
+    [Fact]
     public void The_return_line_names_the_wait()
     {
         Assert.Equal("dead for 20 s with no raise; returning to camp. BOCCHI carries on from there.", ReviveWatch.ReturnLine(20));

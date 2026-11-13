@@ -26,6 +26,9 @@ internal sealed class HornReentry
     private readonly IChatGui chat;
     private readonly IPluginLog log;
     private readonly Action<string>? diag;
+    private readonly Action<string, string?> attention;
+    private bool bocchiNoted;
+    private bool noted;
     private readonly ICallGateSubscriber<Vector3, bool, bool> moveTo;
     private readonly ICallGateSubscriber<object> stopMoving;
     private readonly string togglePath;
@@ -41,8 +44,9 @@ internal sealed class HornReentry
     private string? lastError;
 
     public HornReentry(IDalamudPluginInterface pluginInterface, IClientState clientState, IObjectTable objects, ICondition condition, IGameGui gameGui,
-                       ICommandManager commands, IChatGui chat, IPluginLog log, Action<string>? diag)
+                       ICommandManager commands, IChatGui chat, IPluginLog log, Action<string>? diag, Action<string, string?> attention)
     {
+        this.attention = attention;
         this.pluginInterface = pluginInterface;
         this.clientState = clientState;
         this.objects = objects;
@@ -91,6 +95,7 @@ internal sealed class HornReentry
             log.Error(ex, "re-entry failed");
             diag?.Invoke($"horn: FAILED: {ex.GetType().Name}: {ex.Message}");
             chat.PrintError($"XIV Helper: re-entry stopped working ({ex.Message}); go back in by hand.");
+            Note(HornWatch.BrokenNote(ex.Message, DateTime.Now));
             step = HornStep.Idle;
         }
     }
@@ -105,6 +110,11 @@ internal sealed class HornReentry
             // the automation stops with the kick, so whether a run was on is remembered from inside
             runSeen = OnRun();
             wasInHorn = territory;
+            if (noted)
+            {
+                noted = false;   // back inside, by whatever means: the standing note is done
+                attention("Horn", null);
+            }
             return;
         }
         if (wasInHorn == 0) return;
@@ -223,6 +233,13 @@ internal sealed class HornReentry
             log.Warning($"BOCCHI's run state is out of reach ({problem}); treating a loaded BOCCHI as a run");
             diag?.Invoke($"horn: run state out of reach: {problem}");
             chat.PrintError($"XIV Helper: cannot tell whether BOCCHI is running ({problem}); treating it as running while loaded.");
+            attention("BOCCHI", ReviveWatch.BocchiNote(problem, DateTime.Now));
+            bocchiNoted = true;
+        }
+        else if (bocchiNoted && Bocchi.Problem is null)
+        {
+            bocchiNoted = false;
+            attention("BOCCHI", null);
         }
         return on;
     }
@@ -243,6 +260,13 @@ internal sealed class HornReentry
         if (line is null) return;
         diag?.Invoke("horn: " + line);
         chat.PrintError("XIV Helper: " + line);
+        Note(HornWatch.GaveUpNote(line.TrimEnd('.'), DateTime.Now));
+    }
+
+    private void Note(string note)
+    {
+        noted = true;
+        attention("Horn", note);
     }
 
     private void TryStop()

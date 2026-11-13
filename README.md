@@ -92,7 +92,11 @@ Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, int
 the horn you were thrown out of (the game's SelectString), confirm the yes/no that names it, press Commence on the duty
 window (ContentsFinderConfirm, callback 8), wait for that horn to load, then after 5 s send `/bocchi illegal on`.
 Every step has a timeout (90 s, 10 min for the duty window since it waits on a free instance); on a timeout it stops,
-says where, and leaves the rest to the player. The timer reading at each exit goes to the diagnostic log, so the first
+says where, and leaves the rest to the player. Anything that needs the player's attention or a follow-up goes through the
+same attention notes as the Mac watchers', so it repeats at login and every half hour with the instruction to
+paste the line on until the cause is gone: a re-entry that stopped (source `Horn`, cleared once the character is back inside
+a horn by any means), a watch that broke (`Revive`, `Horn`, cleared when it works again), and BOCCHI's run state being
+out of reach after a BOCCHI update (`BOCCHI`, cleared when it reads again). The chat lines stay for the moment itself. The timer reading at each exit goes to the diagnostic log, so the first
 real kick shows whether the 20 s threshold holds. (2026-11-13)
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
