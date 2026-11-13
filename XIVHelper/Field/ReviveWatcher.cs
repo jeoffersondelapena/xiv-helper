@@ -4,6 +4,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
@@ -170,7 +171,8 @@ internal sealed class ReviveWatcher
         var me = objects.LocalPlayer;
         if (me is null) return false;
         var caster = objects.OfType<IBattleChara>().FirstOrDefault(c =>
-            c.IsCasting && c.CastTargetObjectId == me.GameObjectId && ReviveWatch.RaiseActions.Contains(c.CastActionId));
+            c.IsCasting && c.CastTargetObjectId == me.GameObjectId
+            && (c.CastActionType == (byte)ActionType.Item ? c.CastActionId == ReviveWatch.PhoenixDown : ReviveWatch.RaiseActions.Contains(c.CastActionId)));
         if (caster is null) return false;
         if (caster.GameObjectId != lastCaster)
         {

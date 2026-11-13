@@ -82,7 +82,8 @@ dialogs. A raise offer ("Accept Raise…", told apart from the return dialog by 
 raise grants, never a return) it sends `/say` with the auto-translate phrase "Thank you." (Completion group 2, row 216)
 so the raiser reads it in their own language. After 20 s with nothing going on it summons the revive agent's return
 dialog and confirms it, with one line in the local chat log, visible to nobody else. "Nothing going on" means no raise on
-its way (nobody casting a raise at the character, and the revive agent neither Revivable nor Reviving) and no FATE or
+its way (nobody casting a raise spell or a Phoenix Down at the character, and the revive agent neither Revivable nor
+Reviving) and no FATE or
 critical encounter the character is still part of (the game's current FATE, or a dynamic-event id on the character, the
 same two tests BOCCHI uses); the 20 s clock restarts whenever one of those was true, so a cancelled raise or a finished
 FATE starts a fresh wait. Inside a FATE or CE it keeps waiting for a raise, which is likely there and keeps the credit. BOCCHI

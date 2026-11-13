@@ -26,8 +26,9 @@ public static class ReviveWatch
     public const double AskAgainSeconds = 5;
     public const ushort Transcendent = 418;
 
-    // every raise a player can cast, the Phantom Chemist's Revive included
+    // every raise a player can cast, the Phantom Chemist's Revive included, and the Phoenix Down item (an 8 s item cast)
     public static readonly IReadOnlySet<uint> RaiseActions = new HashSet<uint> { 125, 173, 3603, 7523, 24287, 18317, 41634 };
+    public const uint PhoenixDown = 4570;
 
     // the game's own dialog texts (Addon sheet rows), so the prompts are told apart in any client language
     public const uint RaisePromptRow = 112;

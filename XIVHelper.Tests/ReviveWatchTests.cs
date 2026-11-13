@@ -52,6 +52,7 @@ public class ReviveWatchTests
         Assert.Contains(7523u, ReviveWatch.RaiseActions);   // Verraise
         Assert.Contains(41634u, ReviveWatch.RaiseActions);  // Phantom Chemist's Revive
         Assert.Equal(7, ReviveWatch.RaiseActions.Count);
+        Assert.Equal(4570u, ReviveWatch.PhoenixDown);
     }
 
     [Fact]
