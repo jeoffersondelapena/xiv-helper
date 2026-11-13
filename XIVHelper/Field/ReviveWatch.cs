@@ -26,6 +26,9 @@ public static class ReviveWatch
     public const double AskAgainSeconds = 5;
     public const ushort Transcendent = 418;
 
+    // every raise a player can cast, the Phantom Chemist's Revive included
+    public static readonly IReadOnlySet<uint> RaiseActions = new HashSet<uint> { 125, 173, 3603, 7523, 24287, 18317, 41634 };
+
     // the game's own dialog texts (Addon sheet rows), so the prompts are told apart in any client language
     public const uint RaisePromptRow = 112;
     public const uint ReturnPromptRow = 197;
@@ -37,13 +40,12 @@ public static class ReviveWatch
     public const uint ThanksGroup = 2;
     public const uint ThanksKey = 216;
 
-    /// <summary>A raise offer is taken at once. The return waits for the wait to pass, for no raise to be on its way, and for
-    /// the FATE or critical encounter the character died in to be over, since a raise there is likely and keeps the credit.</summary>
-    public static ReviveMove Next(bool dead, double deadForSeconds, bool raiseOffered, PromptKind prompt, bool inActivity, double returnAfterSeconds)
+    /// <summary>Accept a raise at once; return only after a full wait with no raise coming and no activity running (a raise there is likely and keeps the credit).</summary>
+    public static ReviveMove Next(bool dead, double idleForSeconds, bool raiseIncoming, PromptKind prompt, bool inActivity, double returnAfterSeconds)
     {
         if (!dead) return ReviveMove.None;
         if (prompt == PromptKind.Raise) return ReviveMove.AcceptRaise;
-        if (raiseOffered || inActivity || deadForSeconds < returnAfterSeconds) return ReviveMove.None;
+        if (raiseIncoming || inActivity || idleForSeconds < returnAfterSeconds) return ReviveMove.None;
         return prompt switch
         {
             PromptKind.Return => ReviveMove.ConfirmReturn,

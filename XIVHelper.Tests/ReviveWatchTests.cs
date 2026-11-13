@@ -10,37 +10,48 @@ public class ReviveWatchTests
     [Fact]
     public void Nothing_happens_while_alive()
     {
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: false, 500, raiseOffered: true, PromptKind.Raise, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: false, 500, raiseIncoming: true, PromptKind.Raise, inActivity: false, Wait));
     }
 
     [Fact]
     public void A_raise_offer_is_accepted_at_once_even_mid_fate()
     {
-        Assert.Equal(ReviveMove.AcceptRaise, ReviveWatch.Next(dead: true, 2, raiseOffered: true, PromptKind.Raise, inActivity: true, Wait));
-        Assert.Equal(ReviveMove.AcceptRaise, ReviveWatch.Next(dead: true, 500, raiseOffered: false, PromptKind.Raise, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.AcceptRaise, ReviveWatch.Next(dead: true, 2, raiseIncoming: true, PromptKind.Raise, inActivity: true, Wait));
+        Assert.Equal(ReviveMove.AcceptRaise, ReviveWatch.Next(dead: true, 500, raiseIncoming: false, PromptKind.Raise, inActivity: false, Wait));
     }
 
     [Fact]
     public void Before_the_wait_the_games_own_return_dialog_is_left_alone()
     {
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 10, raiseOffered: false, PromptKind.Return, inActivity: false, Wait));
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 10, raiseOffered: false, PromptKind.None, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 10, raiseIncoming: false, PromptKind.Return, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 10, raiseIncoming: false, PromptKind.None, inActivity: false, Wait));
     }
 
     [Fact]
     public void After_the_wait_the_return_dialog_is_summoned_then_confirmed()
     {
-        Assert.Equal(ReviveMove.AskReturn, ReviveWatch.Next(dead: true, 20, raiseOffered: false, PromptKind.None, inActivity: false, Wait));
-        Assert.Equal(ReviveMove.ConfirmReturn, ReviveWatch.Next(dead: true, 21, raiseOffered: false, PromptKind.Return, inActivity: false, Wait));
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 21, raiseOffered: false, PromptKind.Other, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.AskReturn, ReviveWatch.Next(dead: true, 20, raiseIncoming: false, PromptKind.None, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.ConfirmReturn, ReviveWatch.Next(dead: true, 21, raiseIncoming: false, PromptKind.Return, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 21, raiseIncoming: false, PromptKind.Other, inActivity: false, Wait));
     }
 
     [Fact]
     public void No_return_while_the_fate_or_ce_runs_or_a_raise_is_on_its_way()
     {
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 300, raiseOffered: false, PromptKind.None, inActivity: true, Wait));
-        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 300, raiseOffered: true, PromptKind.None, inActivity: false, Wait));
-        Assert.Equal(ReviveMove.AskReturn, ReviveWatch.Next(dead: true, 300, raiseOffered: false, PromptKind.None, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 300, raiseIncoming: false, PromptKind.None, inActivity: true, Wait));
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 300, raiseIncoming: true, PromptKind.None, inActivity: false, Wait));
+        Assert.Equal(ReviveMove.AskReturn, ReviveWatch.Next(dead: true, 300, raiseIncoming: false, PromptKind.None, inActivity: false, Wait));
+        // the caller restarts the idle clock after a cancelled raise or a finished activity, so a short idle never returns
+        Assert.Equal(ReviveMove.None, ReviveWatch.Next(dead: true, 5, raiseIncoming: false, PromptKind.None, inActivity: false, Wait));
+    }
+
+    [Fact]
+    public void Every_player_raise_counts_as_incoming()
+    {
+        Assert.Contains(125u, ReviveWatch.RaiseActions);    // Raise
+        Assert.Contains(7523u, ReviveWatch.RaiseActions);   // Verraise
+        Assert.Contains(41634u, ReviveWatch.RaiseActions);  // Phantom Chemist's Revive
+        Assert.Equal(7, ReviveWatch.RaiseActions.Count);
     }
 
     [Fact]

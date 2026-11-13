@@ -1,4 +1,5 @@
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
@@ -34,6 +35,8 @@ internal sealed class ReviveWatcher
     private readonly int returnAfterSeconds;
     private DateTime lastPoll = DateTime.MinValue;
     private DateTime? deadSince;
+    private DateTime lastBusy;
+    private ulong lastCaster;
     private DateTime lastAsk = DateTime.MinValue;
     private bool returnAnnounced;
     private bool holdAnnounced;
@@ -85,6 +88,8 @@ internal sealed class ReviveWatcher
         {
             if (BocchiLists.Instance(pluginInterface) is null) return;   // not a BOCCHI run: the player decides
             deadSince = now;
+            lastBusy = now;
+            lastCaster = 0;
             returnAnnounced = false;
             holdAnnounced = false;
             diag?.Invoke("revive: dead");
@@ -112,15 +117,17 @@ internal sealed class ReviveWatcher
         var agent = AgentRevive.Instance();
         var prompt = (AddonSelectYesno*)gameGui.GetAddonByName("SelectYesno").Address;
         var kind = prompt != null && prompt->AtkUnitBase.IsVisible ? Classify(prompt) : PromptKind.None;
-        var raiseOffered = agent->State is ReviveState.Revivable or ReviveState.Reviving;
+        var raiseIncoming = agent->State is ReviveState.Revivable or ReviveState.Reviving || RaiseBeingCast();
         var inActivity = InFateOrCriticalEncounter();
-        var deadFor = (now - since).TotalSeconds;
-        if (inActivity && deadFor >= returnAfterSeconds && !holdAnnounced)
+        // the wait counts from the last moment anything was going on, so a cancelled raise or a finished FATE starts it afresh
+        if (inActivity || raiseIncoming) lastBusy = now;
+        var idleFor = (now - lastBusy).TotalSeconds;
+        if (inActivity && (now - since).TotalSeconds >= returnAfterSeconds && !holdAnnounced)
         {
             holdAnnounced = true;
             diag?.Invoke("revive: holding the return until the FATE or CE is over");
         }
-        var move = ReviveWatch.Next(true, deadFor, raiseOffered, kind, inActivity, returnAfterSeconds);
+        var move = ReviveWatch.Next(true, idleFor, raiseIncoming, kind, inActivity, returnAfterSeconds);
         switch (move)
         {
             case ReviveMove.AcceptRaise:
@@ -156,6 +163,21 @@ internal sealed class ReviveWatcher
         var text = prompt->PromptText != null ? prompt->PromptText->NodeText.ToString() : null;
         var kind = ReviveWatch.Classify(text, raisePrefix, returnPrefix);
         return kind == PromptKind.Other ? ReviveWatch.Classify(text, raisePrefix, homePointPrefix) : kind;
+    }
+
+    private bool RaiseBeingCast()
+    {
+        var me = objects.LocalPlayer;
+        if (me is null) return false;
+        var caster = objects.OfType<IBattleChara>().FirstOrDefault(c =>
+            c.IsCasting && c.CastTargetObjectId == me.GameObjectId && ReviveWatch.RaiseActions.Contains(c.CastActionId));
+        if (caster is null) return false;
+        if (caster.GameObjectId != lastCaster)
+        {
+            lastCaster = caster.GameObjectId;
+            diag?.Invoke($"revive: {caster.Name} is casting a raise");
+        }
+        return true;
     }
 
     // the same two tests BOCCHI uses: the FATE the game has the character in, and the dynamic event it is signed up to
