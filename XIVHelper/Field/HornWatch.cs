@@ -23,6 +23,7 @@ public static class HornWatch
     public static readonly IReadOnlySet<uint> PhantomVillage = new HashSet<uint> { 1269, 1278 };
     public const uint Jeffroy = 1053611;   // Expedition Coordinator, the NPC that admits players
     public const string BocchiStart = "/bocchi illegal on";
+    public const string LifestreamHome = "auto";   // Lifestream's own idea of home: the house, apartment or inn it is set to
 
     public const double PollSeconds = 0.5;
     public const double KickSeconds = 20;          // time left on the instance timer at the moment of leaving that still counts as the timer's doing
@@ -63,9 +64,22 @@ public static class HornWatch
         ? $"left {horn} with {t:0} s on the timer; not going back in."
         : $"left {horn} without a timer reading; not going back in.";
 
-    public static string GaveUpLine(HornStep step) => $"re-entry stopped at {step}; take it from there by hand.";
+    public static string GaveUpLine(HornStep step, string detail = "") => $"re-entry stopped at {step}{detail}; take it from there by hand.";
 
-    public static string GaveUpNote(string reason, DateTime at) => $"{reason} at {at:HH:mm}; the character is outside the horn";
+    public static string Describe(IReadOnlyList<string> entries) => entries.Count == 0 ? "(empty)" : string.Join(" | ", entries);
+
+    public static string MenuDetail(IReadOnlyList<string> entries) => $" (the menu offered: {Describe(entries)})";
+
+    public static string GaveUpNote(string reason, DateTime at, bool sentHome) =>
+        $"{reason} at {at:HH:mm}; the character was {(sentHome ? "sent home" : "left outside the horn, Lifestream could not take it home")}";
+
+    public static string HomeLine(bool sent) => sent
+        ? "sending the character home."
+        : "could not send the character home (Lifestream missing or busy); it is standing outside the horn.";
+
+    public static string NowLine(string horn) => $"going into {horn} now.";
+    public const string NotInVillageLine = "re-entry starts from Phantom Village; go there first.";
+    public const string OffLine = "re-entry is off; /helper horn on first.";
 
     public static string BrokenNote(string problem, DateTime at) => $"the re-entry stopped working at {at:HH:mm} ({problem}); go back in by hand";
 

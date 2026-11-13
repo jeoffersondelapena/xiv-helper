@@ -2,6 +2,7 @@ using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
+using Dalamud.Memory;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
@@ -31,6 +32,9 @@ internal sealed class HornReentry
     private bool noted;
     private readonly ICallGateSubscriber<Vector3, bool, bool> moveTo;
     private readonly ICallGateSubscriber<object> stopMoving;
+    private readonly ICallGateSubscriber<string, object> lifestreamCommand;
+    private readonly ICallGateSubscriber<bool> lifestreamBusy;
+    private IReadOnlyList<string>? lastMenu;
     private readonly string togglePath;
     private bool enabled;
     private DateTime? lastRunAt;
@@ -58,16 +62,28 @@ internal sealed class HornReentry
         this.diag = diag;
         moveTo = pluginInterface.GetIpcSubscriber<Vector3, bool, bool>("vnavmesh.SimpleMove.PathfindAndMoveTo");
         stopMoving = pluginInterface.GetIpcSubscriber<object>("vnavmesh.Path.Stop");
+        lifestreamCommand = pluginInterface.GetIpcSubscriber<string, object>("Lifestream.ExecuteCommand");
+        lifestreamBusy = pluginInterface.GetIpcSubscriber<bool>("Lifestream.IsBusy");
         togglePath = Path.Combine(pluginInterface.ConfigDirectory.FullName, "horn.txt");
         enabled = ReadToggle();
     }
 
     public bool Enabled => enabled;
 
-    /// <summary>/helper horn [on|off]: shows or sets the switch; the setting survives reloads.</summary>
+    /// <summary>/helper horn [on|off|now [north]]: shows or sets the switch (the setting survives reloads), or runs the
+    /// entry from Phantom Village right away.</summary>
     public string Command(string argument)
     {
         var arg = argument.Trim().ToLowerInvariant();
+        if (arg.StartsWith("now", StringComparison.Ordinal))
+        {
+            if (!enabled) return HornWatch.OffLine;
+            if (step != HornStep.Idle) return $"re-entry already in progress: {step}.";
+            if (!HornWatch.PhantomVillage.Contains(clientState.TerritoryType)) return HornWatch.NotInVillageLine;
+            target = arg.Contains("north", StringComparison.Ordinal) ? HornWatch.NorthHorn : HornWatch.SouthHorn;
+            Enter(HornStep.Armed, DateTime.Now);
+            return HornWatch.NowLine(HornWatch.Horns[target]);
+        }
         if (arg is "on" or "off")
         {
             enabled = arg == "on";
@@ -97,6 +113,7 @@ internal sealed class HornReentry
             chat.PrintError($"XIV Helper: re-entry stopped working ({ex.Message}); go back in by hand.");
             Note(HornWatch.BrokenNote(ex.Message, DateTime.Now));
             step = HornStep.Idle;
+            if (!HornWatch.Horns.ContainsKey(clientState.TerritoryType)) Say(HornWatch.HomeLine(GoHome()));
         }
     }
 
@@ -147,7 +164,7 @@ internal sealed class HornReentry
         }
         if ((now - stepSince).TotalSeconds > HornWatch.TimeoutFor(step))
         {
-            Abort(HornWatch.GaveUpLine(step));
+            Abort(HornWatch.GaveUpLine(step, step == HornStep.Menu && lastMenu is not null ? HornWatch.MenuDetail(lastMenu) : ""));
             return;
         }
         var loading = condition[ConditionFlag.BetweenAreas] || condition[ConditionFlag.BetweenAreas51];
@@ -188,10 +205,22 @@ internal sealed class HornReentry
             {
                 var menu = (AddonSelectString*)Addon("SelectString");
                 if (menu == null) return;
-                var entries = new List<string>();
                 var popup = &menu->PopupMenu.PopupMenu;
-                for (var i = 0; i < popup->EntryCount; i++) entries.Add(popup->EntryNames[i].Value->ToString());
-                if (HornWatch.MenuIndex(entries, HornWatch.Horns[target]) is not { } index) { Abort($"the coordinator's menu has no {HornWatch.Horns[target]} entry"); return; }
+                if (menu->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded || popup->EntryCount <= 0) return;   // still filling
+                var entries = new List<string>();
+                for (var i = 0; i < popup->EntryCount; i++)
+                {
+                    var text = popup->EntryNames[i].Value;
+                    entries.Add(text == null ? "" : MemoryHelper.ReadSeStringNullTerminated((nint)text).TextValue);
+                }
+                if (HornWatch.MenuIndex(entries, HornWatch.Horns[target]) is not { } index)
+                {
+                    // the step's timeout gives up with the last menu seen
+                    if (lastMenu is null || !lastMenu.SequenceEqual(entries)) diag?.Invoke($"horn: menu without {HornWatch.Horns[target]}: {HornWatch.Describe(entries)}");
+                    lastMenu = entries;
+                    return;
+                }
+                lastMenu = null;
                 menu->AtkUnitBase.FireCallbackInt(index);
                 Enter(HornStep.Confirm, now);
                 return;
@@ -258,12 +287,41 @@ internal sealed class HornReentry
     private void Abort(string? line)
     {
         if (step == HornStep.Idle) return;
+        var was = step;
         step = HornStep.Idle;
+        lastMenu = null;
         TryStop();
+        Dismiss(was);
         if (line is null) return;
         diag?.Invoke("horn: " + line);
         chat.PrintError("XIV Helper: " + line);
-        Note(HornWatch.GaveUpNote(line.TrimEnd('.'), DateTime.Now));
+        var sent = GoHome();
+        Say(HornWatch.HomeLine(sent));
+        Note(HornWatch.GaveUpNote(line.TrimEnd('.'), DateTime.Now, sent));
+    }
+
+    // a dialog left open would sit on the screen until someone closes it
+    private unsafe void Dismiss(HornStep was)
+    {
+        if (was == HornStep.Menu && Addon("SelectString") is var menu && menu != null) menu->FireCallbackInt(-1);
+        if (was == HornStep.Confirm && Addon("SelectYesno") is var prompt && prompt != null) prompt->FireCallbackInt(1);
+    }
+
+    /// <summary>Lifestream's "auto": the house, apartment or inn it is set to. False when it is missing or already travelling.</summary>
+    private bool GoHome()
+    {
+        try
+        {
+            if (lifestreamBusy.HasFunction && lifestreamBusy.InvokeFunc()) return false;
+            lifestreamCommand.InvokeAction(HornWatch.LifestreamHome);
+            diag?.Invoke("horn: Lifestream " + HornWatch.LifestreamHome);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning(ex, "Lifestream could not take the character home");
+            return false;
+        }
     }
 
     private void Note(string note)

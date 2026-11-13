@@ -61,8 +61,13 @@ public class HornWatchTests
     public void A_stopped_re_entry_leaves_a_standing_note()
     {
         var at = new DateTime(2026, 11, 13, 17, 40, 0);
-        Assert.Equal("re-entry stopped at Commence; take it from there by hand at 17:40; the character is outside the horn",
-            HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Commence).TrimEnd('.'), at));
+        Assert.Equal("re-entry stopped at Commence; take it from there by hand at 17:40; the character was sent home",
+            HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Commence).TrimEnd('.'), at, sentHome: true));
+        Assert.Equal("re-entry stopped at Menu (the menu offered: Ask for more information. | Nothing.); take it from there by hand at 17:40; the character was left outside the horn, Lifestream could not take it home",
+            HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Menu, HornWatch.MenuDetail(new[] { "Ask for more information.", "Nothing." })).TrimEnd('.'), at, sentHome: false));
+        Assert.Equal("(empty)", HornWatch.Describe(Array.Empty<string>()));
+        Assert.Equal("sending the character home.", HornWatch.HomeLine(true));
+        Assert.Equal("going into North Horn now.", HornWatch.NowLine("North Horn"));
         Assert.Equal("the re-entry stopped working at 17:40 (boom); go back in by hand", HornWatch.BrokenNote("boom", at));
     }
 
