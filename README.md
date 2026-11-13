@@ -3,13 +3,12 @@
 Renamed from XIV Doctor on 2026-11-03: it is outgrowing the overlays (a Rotation Solver Reborn state button is next), so the name follows what it does. 
 Renamed from Overlay Doctor on 2026-09-29: it now fronts the overlays, the Mac-side watchers' notes and a fix command, so the old name had grown too narrow. The command is `/helper`.
 
-One in-game command that brings the ACT overlay stack back, relays the Mac's notes and reports the demiatma counts: `/helper`.
+One in-game command that brings the ACT overlay stack back and relays the Mac's notes: `/helper`.
 
 ```
 /helper            how the IINACT parser and the Browsingway renderer are right now
 /helper fix        restart whichever layer is unwell, or load a plugin that is missing
 /helper button     a window with the RSR hotbar button to drag onto a hotbar slot
-/helper demiatma   the six demiatma counts
 /helper horn       re-entry into South or North Horn after its timer: off, on, or the current state
 ```
 
@@ -34,9 +33,7 @@ plugins) and reaches for Dalamud's plugin manager only to load a plugin that is 
 | `XIVHelper/Doctor.cs` | the decision: which steps, in which order (pure, tested) |
 | `XIVHelper/PluginControl.cs` | load or reload another plugin through Dalamud's internals |
 | `XIVHelper/Plugin.cs` | the command, the IPC calls, the chat lines |
-| `XIVHelper/Demiatma/DemiatmaWatch.cs` | the six kinds, when one is complete, the chat lines (pure, tested) |
-| `XIVHelper/Demiatma/DemiatmaWatcher.cs` | the five-second count in South Horn and its chat lines |
-| `XIVHelper/Demiatma/BocchiLists.cs` | finds BOCCHI's loaded plugin object, the "is this a BOCCHI run" test the other watches use |
+| `XIVHelper/Field/Bocchi.cs` | finds BOCCHI's loaded plugin object, the "is this a BOCCHI run" test the two watches use |
 | `XIVHelper/Field/ReviveWatch.cs` | which revive dialog to answer when, and the thank-you phrase (pure, tested) |
 | `XIVHelper/Field/ReviveWatcher.cs` | the half-second poll while dead in the Crescent, the chat line, the `/say` |
 | `XIVHelper/Field/HornWatch.cs` | when a zone change counts as the timer's kick, the menu match, the timeouts (pure, tested) |
@@ -52,14 +49,6 @@ in the config folder). The Mac-side freeze watcher in `xiv-mac-tools` reads that
 while the game process lives is a frozen frame loop, and a last line of `unloading` is the plugin switched off on
 purpose. When the game itself is closing the line is `unloading; game closing`: a process still alive two minutes
 after that has stopped closing, and the watcher ends it. The `heartbeat:` prefix and those two lines are a contract with the watcher. Once a minute a `memory:` line gives the managed heap, what the runtime has committed, how much of the process is in RAM at that moment (its working set, which falls when the system swaps the window out; the `Process` sizes are not used because under Wine on macOS they ask the Wine server for every process and come back 0), the players in view, the territory, and the longest wait between two frames in that minute with the time it ended; the watcher's memory report reads it beside the Mac's own figures for the window, and holds each of its own readings against that longest frame so a reading that is felt in the game shows. A timer thread adds `frame loop stalled Ns; …` lines while the frame loop is not ticking (with a few runtime counters, so a capture shows whether other managed threads still run) and `frame loop resumed` when it ends; the watcher reads those too.
-
-## Demiatma count
-
-`/helper demiatma` prints the six demiatma counts, and in South Horn the plugin says so in chat when a kind reaches three
-and when all six are done. That is all it does with them. An earlier version took a finished kind's FATEs and critical
-encounters off BOCCHI's lists; dropped the same day (2026-11-13) at the user's call, because a run that skips finished
-kinds idles once they are all done, and an idle character is thrown out for inactivity, while the activities pay silver
-and gold besides. The lists stay BOCCHI's own.
 
 ## Raises and returns during BOCCHI runs
 

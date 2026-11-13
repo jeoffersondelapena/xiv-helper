@@ -10,7 +10,6 @@ using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using XIVHelper.Demiatma;
 
 namespace XIVHelper.Field;
 
@@ -112,7 +111,7 @@ internal sealed class HornReentry
         var timeLeft = lastTimeLeft;
         lastTimeLeft = null;
         diag?.Invoke($"horn: left {name}, timer read {timeLeft?.ToString("0.0") ?? "none"} s");
-        if (!enabled || BocchiLists.Instance(pluginInterface) is null) return;
+        if (!enabled || Bocchi.Instance(pluginInterface) is null) return;
         if (!HornWatch.WasKicked(timeLeft))
         {
             diag?.Invoke("horn: " + HornWatch.LeftLine(name, timeLeft));
@@ -125,7 +124,7 @@ internal sealed class HornReentry
 
     private unsafe void Run(DateTime now)
     {
-        if (!enabled || BocchiLists.Instance(pluginInterface) is null)
+        if (!enabled || Bocchi.Instance(pluginInterface) is null)
         {
             Abort("BOCCHI is not loaded or re-entry was switched off");
             return;

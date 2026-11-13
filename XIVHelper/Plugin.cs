@@ -4,7 +4,6 @@ using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Game.Chat;
 using Dalamud.Plugin.Services;
-using XIVHelper.Demiatma;
 using XIVHelper.Field;
 using XIVHelper.HotbarButton;
 
@@ -37,7 +36,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly DiagLog? diag;
     private readonly FrameWatch? frameWatch;
     private readonly RsrButton? rsrButton;
-    private readonly DemiatmaWatcher? demiatma;
     private readonly ReviveWatcher? revive;
     private readonly HornReentry? horn;
     private int busy;
@@ -71,15 +69,6 @@ public sealed class Plugin : IDalamudPlugin
         diag?.Write($"XIV Helper {typeof(Plugin).Assembly.GetName().Version} loaded, pid {Environment.ProcessId}");
         try
         {
-            demiatma = new DemiatmaWatcher(clientState, chat, diag is null ? null : diag.Write);
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, "the demiatma watch could not be set up");
-            diag?.Write($"demiatma watch unavailable: {ex.GetType().Name}: {ex.Message}");
-        }
-        try
-        {
             revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write);
         }
         catch (Exception ex)
@@ -104,7 +93,7 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the six counts; horn on|off: go back into the horn after its timer",
+            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; horn on|off: go back into the horn after its timer",
         });
 
         try
@@ -270,7 +259,6 @@ public sealed class Plugin : IDalamudPlugin
             WriteMemory();
         }
         if (clientState.IsLoggedIn) PollRebuilds(now);
-        demiatma?.Tick(now);
         revive?.Tick(now);
         horn?.Tick(now);
         if ((now - lastReminderCheck).TotalSeconds < 60 || loginAt is not null || !clientState.IsLoggedIn)
@@ -347,11 +335,6 @@ public sealed class Plugin : IDalamudPlugin
         if (args.Trim().StartsWith("horn", StringComparison.OrdinalIgnoreCase))
         {
             chat.Print("XIV Helper: " + (horn?.Command(args.Trim().Substring(4)) ?? "the re-entry watch could not be set up in this session; see the Dalamud log."));
-            return;
-        }
-        if (args.Trim() == "demiatma")
-        {
-            chat.Print("XIV Helper: " + (demiatma?.Status() ?? "the demiatma watch could not be set up in this session; see the Dalamud log."));
             return;
         }
 

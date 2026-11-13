@@ -14,7 +14,6 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using XIVHelper.Demiatma;
 
 namespace XIVHelper.Field;
 
@@ -87,7 +86,7 @@ internal sealed class ReviveWatcher
         var dead = condition[ConditionFlag.Unconscious];
         if (dead && deadSince is null)
         {
-            if (BocchiLists.Instance(pluginInterface) is null) return;   // not a BOCCHI run: the player decides
+            if (Bocchi.Instance(pluginInterface) is null) return;   // not a BOCCHI run: the player decides
             deadSince = now;
             lastBusy = now;
             lastCaster = 0;

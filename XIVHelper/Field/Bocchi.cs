@@ -1,10 +1,10 @@
 using System.Reflection;
 using Dalamud.Plugin;
 
-namespace XIVHelper.Demiatma;
+namespace XIVHelper.Field;
 
 // BOCCHI has no IPC, so "is a BOCCHI run going on" is read from Dalamud's plugin list: loaded or not.
-internal static class BocchiLists
+internal static class Bocchi
 {
     private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
