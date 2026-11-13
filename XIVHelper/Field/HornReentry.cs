@@ -29,8 +29,9 @@ internal sealed class HornReentry
     private readonly IPluginLog log;
     private readonly Action<string>? diag;
     private readonly Action<string, string?> attention;
-    private bool bocchiNoted;
-    private bool noted;
+    // true at load: a note written before a reload is cleared by the first healthy observation, like any other
+    private bool bocchiNoted = true;
+    private bool noted = true;
     private readonly ICallGateSubscriber<Vector3, bool, bool> moveTo;
     private readonly ICallGateSubscriber<object> stopMoving;
     private readonly ICallGateSubscriber<string, object> lifestreamCommand;

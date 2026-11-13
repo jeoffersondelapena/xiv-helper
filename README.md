@@ -124,8 +124,11 @@ that same close-set answer. Anything that needs the player's attention or a foll
 same attention notes as the Mac watchers', so it repeats at login and every half hour with the instruction to
 paste the line on until the cause is gone: a re-entry that stopped (source `Horn`, cleared once the character is back inside
 a horn by any means), a watch that broke (`Revive`, `Horn`, cleared when it works again), and BOCCHI's run state being
-out of reach after a BOCCHI update (`BOCCHI`, cleared when it reads again). The chat lines stay for the moment itself. The timer reading at each exit goes to the diagnostic log, so the first
-real kick shows whether the 20 s threshold holds. (2026-11-13)
+out of reach after a BOCCHI update (`BOCCHI`, cleared when it reads again). The clearing holds across a plugin reload:
+each watch assumes a note may be standing when it loads and clears it on its first healthy observation (the 00:31 note
+outlived two reloads before this). The chat lines stay for the moment itself. The timer reading at each exit goes to the
+diagnostic log. The whole way back ran live on 2026-11-14 at 00:52:55: `/helper horn now`, menu, "Yes.", Commence,
+load, BOCCHI started at 00:53:08 and was in a FATE thirty seconds later.
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
 The first build enables the versioned pre-commit hook (`git config core.hooksPath .githooks`).
