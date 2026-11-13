@@ -25,8 +25,10 @@ public class HornWatchTests
         Assert.Equal(0, HornWatch.MenuIndex(new[] { "Journey to the Occult Crescent: North Horn.", "Nothing." }, "North Horn"));
         Assert.True(HornWatch.IsConfirmPrompt("Journey to the Occult Crescent: South Horn?\n※If your knowledge level is above 20, it will be synced.", "South Horn"));
         Assert.False(HornWatch.IsConfirmPrompt("Return to the starting point for\nSouth?", "South Horn"));
-        Assert.True(HornWatch.ConfirmAnyway(9.5));
-        Assert.False(HornWatch.ConfirmAnyway(10.5));
+        Assert.True(HornWatch.IsConfirmPrompt("Journey to the Occult Crescent?", "South Horn"));
+        Assert.True(HornWatch.IsConfirmPrompt("※If your knowledge level is above 20, it will be synced.", "South Horn"));
+        Assert.False(HornWatch.IsConfirmPrompt("Harusame Rain invites you to a party. Accept?", "South Horn"));
+        Assert.False(HornWatch.IsConfirmPrompt(null, "South Horn"));
         Assert.Equal("Journey to the Occult Crescent: South Horn? ※If your knowledge level is above 20, it will be synced.", HornWatch.OneLine("Journey to the Occult Crescent: South Horn?\n※If your knowledge level is above 20, it will be synced.\n"));
         Assert.Equal("(nothing)", HornWatch.OneLine(null));
         Assert.Equal("North Horn", HornWatch.Horns[1346]);
@@ -65,12 +67,12 @@ public class HornWatchTests
     public void A_stopped_re_entry_leaves_a_standing_note()
     {
         var at = new DateTime(2026, 11, 13, 17, 40, 0);
-        Assert.Equal("re-entry stopped at Commence; take it from there by hand at 17:40; the character was sent home",
+        Assert.Equal("re-entry stopped at Commence; take it from there by hand at 17:40; Lifestream was asked to take the character home",
             HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Commence).TrimEnd('.'), at, sentHome: true));
-        Assert.Equal("re-entry stopped at Menu (the menu offered: Ask for more information. | Nothing.); take it from there by hand at 17:40; the character was left outside the horn, Lifestream could not take it home",
+        Assert.Equal("re-entry stopped at Menu (the menu offered: Ask for more information. | Nothing.); take it from there by hand at 17:40; the character is standing outside the horn, Lifestream could not be asked to take it home",
             HornWatch.GaveUpNote(HornWatch.GaveUpLine(HornStep.Menu, HornWatch.MenuDetail(new[] { "Ask for more information.", "Nothing." })).TrimEnd('.'), at, sentHome: false));
         Assert.Equal("(empty)", HornWatch.Describe(Array.Empty<string>()));
-        Assert.Equal("sending the character home.", HornWatch.HomeLine(true));
+        Assert.Equal("asked Lifestream to take the character home.", HornWatch.HomeLine(true));
         Assert.Equal("going into North Horn now.", HornWatch.NowLine("North Horn"));
         Assert.Equal("the re-entry stopped working at 17:40 (boom); go back in by hand", HornWatch.BrokenNote("boom", at));
     }

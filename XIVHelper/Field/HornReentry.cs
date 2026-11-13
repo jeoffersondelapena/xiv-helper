@@ -37,6 +37,8 @@ internal sealed class HornReentry
     private readonly ICallGateSubscriber<bool> lifestreamBusy;
     private IReadOnlyList<string>? lastMenu;
     private string? lastPrompt;
+    private DateTime? homeAt;
+    private string? homeReason;
     private readonly string togglePath;
     private bool enabled;
     private DateTime? lastRunAt;
@@ -104,6 +106,7 @@ internal sealed class HornReentry
         {
             WatchTimer(now);
             if (step != HornStep.Idle) Run(now);
+            else if (homeAt is { } due && now >= due) HomeNow();
             lastError = null;
         }
         catch (Exception ex)
@@ -115,7 +118,7 @@ internal sealed class HornReentry
             chat.PrintError($"XIV Helper: re-entry stopped working ({ex.Message}); go back in by hand.");
             Note(HornWatch.BrokenNote(ex.Message, DateTime.Now));
             step = HornStep.Idle;
-            if (!HornWatch.Horns.ContainsKey(clientState.TerritoryType)) Say(HornWatch.HomeLine(GoHome()));
+            if (!HornWatch.Horns.ContainsKey(clientState.TerritoryType)) HomeLater(null, now);
         }
     }
 
@@ -223,7 +226,7 @@ internal sealed class HornReentry
                     return;
                 }
                 lastMenu = null;
-                menu->AtkUnitBase.FireCallbackInt(index);
+                Fire(&menu->AtkUnitBase, index);
                 Enter(HornStep.Confirm, now);
                 return;
             }
@@ -237,10 +240,9 @@ internal sealed class HornReentry
                     lastPrompt = text;
                     diag?.Invoke($"horn: yes/no reads: {HornWatch.OneLine(text)}");
                 }
-                // the yes/no the game answers our menu click with is ours even when its text reads wrong
-                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target]) && !HornWatch.ConfirmAnyway((now - stepSince).TotalSeconds)) return;
+                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target])) return;
                 lastPrompt = null;
-                prompt->FireCallbackInt(0);
+                Fire(prompt, 0);
                 Enter(HornStep.Commence, now);
                 return;
             }
@@ -248,7 +250,7 @@ internal sealed class HornReentry
             {
                 var window = Addon("ContentsFinderConfirm");
                 if (window == null) return;
-                window->FireCallbackInt(8);
+                Fire(window, 8);
                 diag?.Invoke("horn: commenced");
                 Enter(HornStep.Entering, now);
                 return;
@@ -304,16 +306,37 @@ internal sealed class HornReentry
         if (line is null) return;
         diag?.Invoke("horn: " + line);
         chat.PrintError("XIV Helper: " + line);
-        var sent = GoHome();
-        Say(HornWatch.HomeLine(sent));
-        Note(HornWatch.GaveUpNote(line.TrimEnd('.'), DateTime.Now, sent));
+        HomeLater(line.TrimEnd('.'), DateTime.Now);
     }
 
     // a dialog left open would sit on the screen until someone closes it
     private unsafe void Dismiss(HornStep was)
     {
-        if (was == HornStep.Menu && Addon("SelectString") is var menu && menu != null) menu->FireCallbackInt(-1);
-        if (was == HornStep.Confirm && Addon("SelectYesno") is var prompt && prompt != null) prompt->FireCallbackInt(1);
+        if (was == HornStep.Menu && Addon("SelectString") is var menu && menu != null) Fire(menu, -1);
+        if (was == HornStep.Confirm && Addon("SelectYesno") is var prompt && prompt != null) Fire(prompt, 1);
+    }
+
+    // the window's own answer with close set, the way ECommons presses these; the game's FireCallbackInt leaves a No open
+    private static unsafe void Fire(AtkUnitBase* addon, int value)
+    {
+        var atkValue = new AtkValue();
+        atkValue.SetInt(value);
+        addon->FireCallback(1, &atkValue, true);
+    }
+
+    private void HomeLater(string? reason, DateTime now)
+    {
+        homeReason = reason;
+        homeAt = now.AddSeconds(HornWatch.HomeDelaySeconds);
+    }
+
+    private void HomeNow()
+    {
+        homeAt = null;
+        var sent = GoHome();
+        Say(HornWatch.HomeLine(sent));
+        if (homeReason is { } reason) Note(HornWatch.GaveUpNote(reason, DateTime.Now, sent));
+        homeReason = null;
     }
 
     /// <summary>Lifestream's "auto": the house, apartment or inn it is set to. False when it is missing or already travelling.</summary>

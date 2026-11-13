@@ -108,15 +108,18 @@ the trips after the demiatma are done. The way back follows what the game shows:
 Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick the menu entry that names
 the horn you were thrown out of (the game's SelectString, read once it is loaded and filled, each entry through
 Dalamud's SeString reader, since the entries are C strings: the first live attempt, 2026-11-14 00:13, read them with
-a byte's ToString and saw numbers, so "no South Horn entry"), confirm the yes/no (every text node of the window is read;
-the horn's name confirms it, and so does any yes/no within 10 s of our own menu click, since that is the game's answer
-to it: the second live attempt, 00:30, sat on a yes/no that visibly named South Horn and never matched the prompt node
+a byte's ToString and saw numbers, so "no South Horn entry"), confirm the yes/no (every text node of the window is read
+and the horn's name, "Occult Crescent" or "knowledge level" confirms it; words only, since a party invite is a yes/no
+too: the second live attempt, 00:30, sat on a yes/no that visibly named South Horn and never matched the prompt node
 alone; what the window reads goes to the diagnostic log), press Commence on the duty
 window (ContentsFinderConfirm, callback 8), wait for that horn to load, then after 5 s send `/bocchi illegal on`.
 Every step has a timeout (90 s, 10 min for the duty window since it waits on a free instance); on a timeout it stops,
-says where (for the menu, with the entries it saw), closes the dialog it was on, and sends the character home through
-Lifestream's `auto` (its configured house, apartment or inn), because a stopped automation never leaves the character
-standing among other players; when Lifestream is missing or busy it says so and the character stays put. Anything that needs the player's attention or a follow-up goes through the
+says where (for the menu, with the entries it saw), closes the dialog it was on (the window's own answer with close
+set, as ECommons presses it; the game's FireCallbackInt left a No standing on 2026-11-14 00:31, and Lifestream's
+teleport then timed out behind the open dialog), and two seconds later asks Lifestream for `auto`, its configured
+house, apartment or, with none, the inn, because a stopped automation never leaves the character standing among other
+players; when Lifestream is missing or busy it says so and the character stays put. Dialog presses throughout use
+that same close-set answer. Anything that needs the player's attention or a follow-up goes through the
 same attention notes as the Mac watchers', so it repeats at login and every half hour with the instruction to
 paste the line on until the cause is gone: a re-entry that stopped (source `Horn`, cleared once the character is back inside
 a horn by any means), a watch that broke (`Revive`, `Horn`, cleared when it works again), and BOCCHI's run state being
