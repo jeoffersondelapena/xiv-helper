@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
@@ -35,6 +36,7 @@ internal sealed class HornReentry
     private readonly ICallGateSubscriber<string, object> lifestreamCommand;
     private readonly ICallGateSubscriber<bool> lifestreamBusy;
     private IReadOnlyList<string>? lastMenu;
+    private string? lastPrompt;
     private readonly string togglePath;
     private bool enabled;
     private DateTime? lastRunAt;
@@ -227,11 +229,18 @@ internal sealed class HornReentry
             }
             case HornStep.Confirm:
             {
-                var prompt = (AddonSelectYesno*)Addon("SelectYesno");
+                var prompt = Addon("SelectYesno");
                 if (prompt == null) return;
-                var text = prompt->PromptText != null ? prompt->PromptText->NodeText.ToString() : null;
-                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target])) return;
-                prompt->AtkUnitBase.FireCallbackInt(0);
+                var text = AllText(prompt);
+                if (lastPrompt != text)
+                {
+                    lastPrompt = text;
+                    diag?.Invoke($"horn: yes/no reads: {HornWatch.OneLine(text)}");
+                }
+                // the yes/no the game answers our menu click with is ours even when its text reads wrong
+                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target]) && !HornWatch.ConfirmAnyway((now - stepSince).TotalSeconds)) return;
+                lastPrompt = null;
+                prompt->FireCallbackInt(0);
                 Enter(HornStep.Commence, now);
                 return;
             }
@@ -338,6 +347,23 @@ internal sealed class HornReentry
 
     private IGameObject? Coordinator() =>
         objects.FirstOrDefault(o => o.BaseId == HornWatch.Jeffroy) ?? objects.FirstOrDefault(o => o.Name.TextValue == "Jeffroy");
+
+    // every text node of the window, so the match does not hang on which node the game put the words in
+    private static unsafe string AllText(AtkUnitBase* addon)
+    {
+        var sb = new StringBuilder();
+        var nodes = addon->UldManager.NodeList;
+        for (var i = 0; nodes != null && i < addon->UldManager.NodeListCount; i++)
+        {
+            var node = nodes[i];
+            if (node == null || node->Type != NodeType.Text) continue;
+            var ptr = ((AtkTextNode*)node)->NodeText.StringPtr.Value;
+            if (ptr == null) continue;
+            var s = MemoryHelper.ReadSeStringNullTerminated((nint)ptr).TextValue;
+            if (s.Length > 0) sb.Append(s).Append('\n');
+        }
+        return sb.ToString();
+    }
 
     private unsafe AtkUnitBase* Addon(string name)
     {

@@ -31,6 +31,7 @@ public static class HornWatch
     public const double StepTimeoutSeconds = 90;
     public const double QueueTimeoutSeconds = 600; // the duty window waits on a free instance
     public const double BocchiDelaySeconds = 5;
+    public const double ConfirmWindowSeconds = 10;  // a yes/no this soon after our own menu click is the game's answer to it
     public const double RunMemorySeconds = 60;    // BOCCHI stops its run on the kick's loading screen, before the zone id changes
 
     public static bool RunWasOn(DateTime? lastRunAt, DateTime now) => lastRunAt is { } t && (now - t).TotalSeconds <= RunMemorySeconds;
@@ -45,6 +46,10 @@ public static class HornWatch
     }
 
     public static bool IsConfirmPrompt(string? prompt, string horn) => (prompt ?? "").Contains(horn, StringComparison.OrdinalIgnoreCase);
+
+    public static bool ConfirmAnyway(double sinceMenuClickSeconds) => sinceMenuClickSeconds <= ConfirmWindowSeconds;
+
+    public static string OneLine(string? text) => string.IsNullOrWhiteSpace(text) ? "(nothing)" : text.Replace("\r", "").Replace('\n', ' ').Trim();
 
     public static double TimeoutFor(HornStep step) => step == HornStep.Commence ? QueueTimeoutSeconds : StepTimeoutSeconds;
 
