@@ -18,8 +18,8 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace XIVHelper.Field;
 
-/// <summary>While BOCCHI runs in the Occult Crescent: accepts a raise, says thanks for it, and returns to camp after a set
-/// time dead with no raise in sight. Frame thread only.</summary>
+/// <summary>While BOCCHI runs in the Occult Crescent: accepts a raise, says thanks for it, returns to camp after a set
+/// time dead with no raise in sight, and arms RSR and BossMod for a fight BOCCHI leaves unarmed. Frame thread only.</summary>
 internal sealed class ReviveWatcher
 {
     private readonly IDalamudPluginInterface pluginInterface;
@@ -41,8 +41,8 @@ internal sealed class ReviveWatcher
     private DateTime? deadSince;
     private string? lastAliveState;
     private string? diedIn;
-    private DateTime? inCombatSince;
-    private bool defended;
+    private DateTime? unarmedSince;
+    private bool defenceNoted;
     private DateTime lastBusy;
     private ulong lastCaster;
     private DateTime lastAsk = DateTime.MinValue;
@@ -53,6 +53,8 @@ internal sealed class ReviveWatcher
     private readonly ICallGateSubscriber<bool> rsrActive;
     private readonly ICallGateSubscriber<RsrMode, object> rsrMode;
     private readonly ICallGateSubscriber<byte, object> rsrModeByte;
+    private readonly ICallGateSubscriber<string, bool> bmrSetActive;
+    private readonly ICallGateSubscriber<string?> bmrGetActive;
     private string? lastError;
 
     public ReviveWatcher(IDalamudPluginInterface pluginInterface, IClientState clientState, IObjectTable objects, ICondition condition, IGameGui gameGui,
@@ -75,6 +77,8 @@ internal sealed class ReviveWatcher
         rsrActive = pluginInterface.GetIpcSubscriber<bool>("RotationSolverReborn.AutorotationActive");
         rsrMode = pluginInterface.GetIpcSubscriber<RsrMode, object>("RotationSolverReborn.ChangeOperatingMode");
         rsrModeByte = pluginInterface.GetIpcSubscriber<byte, object>("RotationSolverReborn.ChangeOperatingMode");
+        bmrSetActive = pluginInterface.GetIpcSubscriber<string, bool>("BossMod.Presets.SetActive");
+        bmrGetActive = pluginInterface.GetIpcSubscriber<string?>("BossMod.Presets.GetActive");
     }
 
     public void Tick(DateTime now)
@@ -199,18 +203,63 @@ internal sealed class ReviveWatcher
     {
         if (state != ReviveWatch.InCombat)
         {
-            inCombatSince = null;
-            defended = false;
+            unarmedSince = null;
             return;
         }
-        inCombatSince ??= now;
-        if (defended) return;
-        bool active;
-        try { active = rsrActive.InvokeFunc(); }
+        bool rsrOn;
+        try { rsrOn = rsrActive.InvokeFunc(); }
         catch (Exception) { return; }   // RSR not loaded: nothing to arm
-        if (!ReviveWatch.NeedsSelfDefence(state, (now - inCombatSince.Value).TotalSeconds, active, BocchiRun())) return;
-        defended = true;
+        // with BossMod's preset out of reach (noted once), RSR alone counts as armed, or this would fire every two seconds
+        var armed = rsrOn && (defenceNoted || ReviveWatch.IsBocchiPreset(ActivePreset()));
+        if (armed)
+        {
+            unarmedSince = null;
+            return;
+        }
+        unarmedSince ??= now;
+        if (!ReviveWatch.NeedsSelfDefence(state, (now - unarmedSince.Value).TotalSeconds, armed, BocchiRun())) return;
+        unarmedSince = null;
+        ArmDefence();
+    }
+
+    // BOCCHI's own order: the BossMod preset that picks and walks to targets first, then RSR
+    private void ArmDefence()
+    {
+        var preset = ReviveWatch.DefencePreset(CeRunning());
+        if (ActivatePreset(preset))
+        {
+            diag?.Invoke($"revive: BossMod preset {preset} active");
+            if (defenceNoted)
+            {
+                defenceNoted = false;
+                attention("Defence", null);
+            }
+        }
+        else if (!defenceNoted)
+        {
+            defenceNoted = true;
+            log.Warning($"BossMod has no preset named {preset}");
+            diag?.Invoke($"revive: BossMod has no preset named {preset}");
+            chat.PrintError($"XIV Helper: BossMod has no preset named \"{preset}\"; RSR alone only hits a target picked by hand.");
+            attention("Defence", ReviveWatch.DefenceNote(preset, DateTime.Now));
+        }
         if (ArmHenched()) Say(ReviveWatch.DefendLine);
+    }
+
+    private string? ActivePreset()
+    {
+        try { return bmrGetActive.HasFunction ? bmrGetActive.InvokeFunc() : null; }
+        catch (Exception) { return null; }
+    }
+
+    private bool ActivatePreset(string name)
+    {
+        try { return bmrSetActive.HasFunction && bmrSetActive.InvokeFunc(name); }
+        catch (Exception ex)
+        {
+            log.Warning(ex, "BossMod preset activation failed");
+            return false;
+        }
     }
 
     private void Say(string line)
@@ -288,9 +337,13 @@ internal sealed class ReviveWatcher
     {
         var fates = FateManager.Instance();
         var fateRunning = fates != null && fates->CurrentFate != null;
+        return ReviveWatch.HoldFor(diedIn, fateRunning, CeRunning());
+    }
+
+    private unsafe bool CeRunning()
+    {
         var events = DynamicEventContainer.GetInstance();
-        var ceRunning = events != null && events->CurrentEventId != 0;
-        return ReviveWatch.HoldFor(diedIn, fateRunning, ceRunning);
+        return events != null && events->CurrentEventId != 0;
     }
 
     private unsafe void SayThanks()

@@ -102,14 +102,28 @@ public class ReviveWatchTests
     }
 
     [Fact]
-    public void A_stray_fight_with_rsr_off_arms_it_after_two_seconds_on_a_run()
+    public void A_stray_fight_with_either_half_off_arms_both_after_two_seconds_on_a_run()
     {
-        Assert.True(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 2, rsrActive: false, onRun: true));
-        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 1, rsrActive: false, onRun: true));
-        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, rsrActive: true, onRun: true));
-        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, rsrActive: false, onRun: false));
-        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InFate, 5, rsrActive: false, onRun: true));
-        Assert.False(ReviveWatch.NeedsSelfDefence(null, 5, rsrActive: false, onRun: true));
+        Assert.True(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 2, armed: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 1, armed: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, armed: true, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InCombat, 5, armed: false, onRun: false));
+        Assert.False(ReviveWatch.NeedsSelfDefence(ReviveWatch.InFate, 5, armed: false, onRun: true));
+        Assert.False(ReviveWatch.NeedsSelfDefence(null, 5, armed: false, onRun: true));
+    }
+
+    [Fact]
+    public void The_defence_uses_bocchis_own_bossmod_presets_and_recognises_them()
+    {
+        Assert.Equal("BOCCHI AI CE", ReviveWatch.DefencePreset(inCriticalEncounter: true));
+        Assert.Equal("BOCCHI AI MOB", ReviveWatch.DefencePreset(inCriticalEncounter: false));
+        Assert.True(ReviveWatch.IsBocchiPreset("BOCCHI AI FATE"));
+        Assert.True(ReviveWatch.IsBocchiPreset("BOCCHI AR CE"));
+        Assert.False(ReviveWatch.IsBocchiPreset("AutoDuty"));
+        Assert.False(ReviveWatch.IsBocchiPreset(""));
+        Assert.False(ReviveWatch.IsBocchiPreset(null));
+        Assert.Equal("BossMod has no preset named \"BOCCHI AI MOB\" since 21:32; a stray fight gets RSR alone, which only hits a target picked by hand",
+            ReviveWatch.DefenceNote("BOCCHI AI MOB", new DateTime(2026, 11, 13, 21, 32, 0)));
     }
 
     [Fact]

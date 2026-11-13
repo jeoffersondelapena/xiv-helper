@@ -101,13 +101,25 @@ public static class ReviveWatch
     public const string InCriticalEncounter = "InCriticalEncounter";
     public const string InCombat = "InCombat";
     public const double DefendAfterSeconds = 2;
+    public const string CePreset = "BOCCHI AI CE";
+    public const string MobPreset = "BOCCHI AI MOB";
 
-    /// <summary>BOCCHI arms RSR only inside its activities; a stray mob leaves the character standing. After two seconds of its
-    /// InCombat state with RSR off, during a run, RSR is armed; BOCCHI switches it off again when the state moves on.</summary>
-    public static bool NeedsSelfDefence(string? state, double inCombatForSeconds, bool rsrActive, bool onRun) =>
-        onRun && state == InCombat && inCombatForSeconds >= DefendAfterSeconds && !rsrActive;
+    /// <summary>BOCCHI arms RSR and its BossMod targeting preset only inside its activities; a stray mob, or a CE it gave up on
+    /// while the character already stood inside, leaves the character standing. During a run, after two seconds of its InCombat
+    /// state with either half off, both are armed; BOCCHI switches them off again when the state moves on.</summary>
+    public static bool NeedsSelfDefence(string? state, double unarmedForSeconds, bool armed, bool onRun) =>
+        onRun && state == InCombat && unarmedForSeconds >= DefendAfterSeconds && !armed;
 
-    public const string DefendLine = "a stray fight with RSR off; set it to BOCCHI's mode.";
+    /// <summary>BOCCHI's CE and mob presets target anything hostile alike; the name only tells BossMod's window which fight this is.</summary>
+    public static string DefencePreset(bool inCriticalEncounter) => inCriticalEncounter ? CePreset : MobPreset;
+
+    public static bool IsBocchiPreset(string? active) =>
+        active is not null && (active.StartsWith("BOCCHI AI ", StringComparison.Ordinal) || active.StartsWith("BOCCHI AR ", StringComparison.Ordinal));
+
+    public const string DefendLine = "a stray fight with nothing armed; RSR and BossMod set the way BOCCHI sets them.";
+
+    public static string DefenceNote(string preset, DateTime at) =>
+        $"BossMod has no preset named \"{preset}\" since {at:HH:mm}; a stray fight gets RSR alone, which only hits a target picked by hand";
 
     /// <summary>Whether the death is still "inside an activity": only a death BOCCHI took in a FATE or a CE holds the return, and only
     /// while that activity still runs. A death to a stray mob, or with BOCCHI's state unreadable, follows the game's own tests.</summary>
