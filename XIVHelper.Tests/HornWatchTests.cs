@@ -26,6 +26,10 @@ public class HornWatchTests
         Assert.True(HornWatch.IsConfirmPrompt("Journey to the Occult Crescent: South Horn?\n※If your knowledge level is above 20, it will be synced.", "South Horn"));
         Assert.False(HornWatch.IsConfirmPrompt("Return to the starting point for\nSouth?", "South Horn"));
         Assert.True(HornWatch.IsConfirmPrompt("Journey to the Occult Crescent?", "South Horn"));
+        Assert.Equal(0, HornWatch.YesIndex(new[] { "Yes.", "No." }));
+        Assert.Equal(1, HornWatch.NoIndex(new[] { "Yes.", "No." }));
+        Assert.Null(HornWatch.YesIndex(new[] { "Journey to the Occult Crescent: South Horn.", "Ask for more information.", "Nothing." }));
+        Assert.Null(HornWatch.NoIndex(new[] { "Nothing." }));
         Assert.True(HornWatch.IsConfirmPrompt("※If your knowledge level is above 20, it will be synced.", "South Horn"));
         Assert.False(HornWatch.IsConfirmPrompt("Harusame Rain invites you to a party. Accept?", "South Horn"));
         Assert.False(HornWatch.IsConfirmPrompt(null, "South Horn"));

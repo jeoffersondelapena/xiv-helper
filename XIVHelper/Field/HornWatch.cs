@@ -47,6 +47,18 @@ public static class HornWatch
         return null;
     }
 
+    // the confirmation is a second talk menu whose entries read "Yes." and "No."
+    public static int? YesIndex(IReadOnlyList<string> entries) => AnswerIndex(entries, "Yes");
+
+    public static int? NoIndex(IReadOnlyList<string> entries) => AnswerIndex(entries, "No");
+
+    private static int? AnswerIndex(IReadOnlyList<string> entries, string answer)
+    {
+        for (var i = 0; i < entries.Count; i++)
+            if (entries[i].Trim().TrimEnd('.', '。').Equals(answer, StringComparison.OrdinalIgnoreCase)) return i;
+        return null;
+    }
+
     public static bool IsConfirmPrompt(string? prompt, string horn)
     {
         var text = prompt ?? "";

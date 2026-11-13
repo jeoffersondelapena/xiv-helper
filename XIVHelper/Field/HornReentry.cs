@@ -210,14 +210,7 @@ internal sealed class HornReentry
             {
                 var menu = (AddonSelectString*)Addon("SelectString");
                 if (menu == null) return;
-                var popup = &menu->PopupMenu.PopupMenu;
-                if (menu->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded || popup->EntryCount <= 0) return;   // still filling
-                var entries = new List<string>();
-                for (var i = 0; i < popup->EntryCount; i++)
-                {
-                    var text = popup->EntryNames[i].Value;
-                    entries.Add(text == null ? "" : MemoryHelper.ReadSeStringNullTerminated((nint)text).TextValue);
-                }
+                if (Entries(menu) is not { } entries) return;   // still filling
                 if (HornWatch.MenuIndex(entries, HornWatch.Horns[target]) is not { } index)
                 {
                     // the step's timeout gives up with the last menu seen
@@ -232,15 +225,24 @@ internal sealed class HornReentry
             }
             case HornStep.Confirm:
             {
+                // "Journey to ...?" comes as a second talk menu with Yes./No. entries; a plain yes/no window is taken too
+                var list = (AddonSelectString*)Addon("SelectString");
+                if (list != null)
+                {
+                    if (Entries(list) is not { } entries) return;
+                    var text = AllText(&list->AtkUnitBase);
+                    Seen("menu", text);
+                    if (HornWatch.YesIndex(entries) is not { } yes || !HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target])) return;
+                    lastPrompt = null;
+                    Fire(&list->AtkUnitBase, yes);
+                    Enter(HornStep.Commence, now);
+                    return;
+                }
                 var prompt = Addon("SelectYesno");
                 if (prompt == null) return;
-                var text = AllText(prompt);
-                if (lastPrompt != text)
-                {
-                    lastPrompt = text;
-                    diag?.Invoke($"horn: yes/no reads: {HornWatch.OneLine(text)}");
-                }
-                if (!HornWatch.IsConfirmPrompt(text, HornWatch.Horns[target])) return;
+                var promptText = AllText(prompt);
+                Seen("yes/no", promptText);
+                if (!HornWatch.IsConfirmPrompt(promptText, HornWatch.Horns[target])) return;
                 lastPrompt = null;
                 Fire(prompt, 0);
                 Enter(HornStep.Commence, now);
@@ -313,7 +315,32 @@ internal sealed class HornReentry
     private unsafe void Dismiss(HornStep was)
     {
         if (was == HornStep.Menu && Addon("SelectString") is var menu && menu != null) Fire(menu, -1);
-        if (was == HornStep.Confirm && Addon("SelectYesno") is var prompt && prompt != null) Fire(prompt, 1);
+        if (was != HornStep.Confirm) return;
+        var list = (AddonSelectString*)Addon("SelectString");
+        if (list != null && Entries(list) is { } entries && HornWatch.NoIndex(entries) is { } no) Fire(&list->AtkUnitBase, no);
+        else if (Addon("SelectYesno") is var prompt && prompt != null) Fire(prompt, 1);
+    }
+
+    private void Seen(string kind, string text)
+    {
+        var line = $"{kind} reads: {HornWatch.OneLine(text)}";
+        if (lastPrompt == line) return;
+        lastPrompt = line;
+        diag?.Invoke("horn: confirm step, " + line);
+    }
+
+    // null while the list is still loading or filling
+    private static unsafe List<string>? Entries(AddonSelectString* menu)
+    {
+        var popup = &menu->PopupMenu.PopupMenu;
+        if (menu->AtkUnitBase.UldManager.LoadedState != AtkLoadState.Loaded || popup->EntryCount <= 0) return null;
+        var entries = new List<string>();
+        for (var i = 0; i < popup->EntryCount; i++)
+        {
+            var text = popup->EntryNames[i].Value;
+            entries.Add(text == null ? "" : MemoryHelper.ReadSeStringNullTerminated((nint)text).TextValue);
+        }
+        return entries;
     }
 
     // the window's own answer with close set, the way ECommons presses these; the game's FireCallbackInt leaves a No open

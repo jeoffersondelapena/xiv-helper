@@ -108,10 +108,11 @@ the trips after the demiatma are done. The way back follows what the game shows:
 Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick the menu entry that names
 the horn you were thrown out of (the game's SelectString, read once it is loaded and filled, each entry through
 Dalamud's SeString reader, since the entries are C strings: the first live attempt, 2026-11-14 00:13, read them with
-a byte's ToString and saw numbers, so "no South Horn entry"), confirm the yes/no (every text node of the window is read
-and the horn's name, "Occult Crescent" or "knowledge level" confirms it; words only, since a party invite is a yes/no
-too: the second live attempt, 00:30, sat on a yes/no that visibly named South Horn and never matched the prompt node
-alone; what the window reads goes to the diagnostic log), press Commence on the duty
+a byte's ToString and saw numbers, so "no South Horn entry"), answer "Yes." on the second talk menu, "Journey to the
+Occult Crescent: South Horn?" (another SelectString, not the game's yes/no window: the second and third live attempts,
+00:30 and 00:45, waited 90 s for a SelectYesno that never came; a plain yes/no window is taken too; every text node of
+the window is read and the horn's name, "Occult Crescent" or "knowledge level" has to be in it, words only, since a
+party invite is a yes/no as well; what the step sees goes to the diagnostic log), press Commence on the duty
 window (ContentsFinderConfirm, callback 8), wait for that horn to load, then after 5 s send `/bocchi illegal on`.
 Every step has a timeout (90 s, 10 min for the duty window since it waits on a free instance); on a timeout it stops,
 says where (for the menu, with the entries it saw), closes the dialog it was on (the window's own answer with close
