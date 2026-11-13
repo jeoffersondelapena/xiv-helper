@@ -36,6 +36,8 @@ plugins) and reaches for Dalamud's plugin manager only to load a plugin that is 
 | `XIVHelper/Demiatma/DemiatmaWatch.cs` | the demiatma tables and which ids go on or off BOCCHI's lists (pure, tested) |
 | `XIVHelper/Demiatma/DemiatmaWatcher.cs` | the five-second poll in South Horn, the chat lines, the record of the plugin's own skips |
 | `XIVHelper/Demiatma/BocchiLists.cs` | reaches BOCCHI's live disabled-id sets through its service container |
+| `XIVHelper/Field/ReviveWatch.cs` | which revive dialog to answer when, and the thank-you phrase (pure, tested) |
+| `XIVHelper/Field/ReviveWatcher.cs` | the half-second poll while dead in the Crescent, the chat line, the `/say` |
 | `XIVHelper/DiagLog.cs` | the per-window diagnostic log and its once-a-minute heartbeat |
 | `XIVHelper.Tests/` | xunit; runs before every commit once the hook is enabled |
 
@@ -70,6 +72,18 @@ reflection (`Demiatma/BocchiLists.cs`; member names as of BOCCHI 4.2.0.19 and Oc
 the plugin prints one chat line per BOCCHI load naming the member and leaves the lists alone; untick by hand until this
 file is adjusted. The ids the plugin added are kept in `demiatma-skips.json` in the config folder so they are recognised
 as its own after a restart.
+
+## Raises and returns during BOCCHI runs
+
+BOCCHI's own dead state only waits: no answer to the raise prompt, no way back to camp (its Return code refuses while
+unconscious). So in the Occult Crescent (South or North Horn), while BOCCHI is loaded, the plugin takes over the revive
+dialogs the way AutoDuty does in dungeons: a raise offer (the yes/no that shows while the revive agent's own dialog is
+down) is accepted at once; once back on its feet with Transcendent on (which only a raise grants, never a return), it
+sends `/say` with the auto-translate phrase "Thank you." (Completion group 2, row 216) so the raiser reads it in their
+own language; and after 120 s dead with no raise on its way it summons the agent's return dialog and confirms it, with
+one chat line saying so. BOCCHI treats the respawn like any revive and carries on from camp. The wait comes from the
+first line of `revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is
+left to the player. (2026-11-13)
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
 The first build enables the versioned pre-commit hook (`git config core.hooksPath .githooks`).

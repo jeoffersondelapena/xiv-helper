@@ -5,6 +5,7 @@ using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Game.Chat;
 using Dalamud.Plugin.Services;
 using XIVHelper.Demiatma;
+using XIVHelper.Field;
 using XIVHelper.HotbarButton;
 
 namespace XIVHelper;
@@ -37,6 +38,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly FrameWatch? frameWatch;
     private readonly RsrButton? rsrButton;
     private readonly DemiatmaWatcher? demiatma;
+    private readonly ReviveWatcher? revive;
     private int busy;
     private DateTime? reminderShownAt;
     private DateTime lastReminderCheck = DateTime.MinValue;
@@ -45,7 +47,7 @@ public sealed class Plugin : IDalamudPlugin
     private string lastNotes = "";
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog log, IFramework framework, IClientState clientState, IObjectTable objects,
-                  ISigScanner sigScanner, IGameInteropProvider hooks, ITextureProvider textures)
+                  ISigScanner sigScanner, IGameInteropProvider hooks, ITextureProvider textures, ICondition condition, IGameGui gameGui)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -74,6 +76,15 @@ public sealed class Plugin : IDalamudPlugin
         {
             log.Error(ex, "the demiatma watch could not be set up");
             diag?.Write($"demiatma watch unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
+        try
+        {
+            revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, diag is null ? null : diag.Write);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "the revive watch could not be set up");
+            diag?.Write($"revive watch unavailable: {ex.GetType().Name}: {ex.Message}");
         }
 
         clientState.Login += OnLogin;
@@ -250,6 +261,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         if (clientState.IsLoggedIn) PollRebuilds(now);
         demiatma?.Tick(now);
+        revive?.Tick(now);
         if ((now - lastReminderCheck).TotalSeconds < 60 || loginAt is not null || !clientState.IsLoggedIn)
             return;
         lastReminderCheck = now;

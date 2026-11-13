@@ -2,7 +2,7 @@
     "Name": "XIV Helper",
     "Author": "jeoffersondelapena",
     "Punchline": "Keeps the overlays up, reads out the Mac's notes, and steers BOCCHI off finished demiatma.",
-    "Description": "Asks IINACT and Browsingway how they are, restarts whichever layer is unwell, loads either plugin if it is missing, and relays the notes the Mac-side watchers leave, at login and every half hour until cleared. In South Horn it counts the demiatma and takes the FATEs and critical encounters of any kind already at three off BOCCHI's lists, so the autopilot farms only what is still needed.",
+    "Description": "Asks IINACT and Browsingway how they are, restarts whichever layer is unwell, loads either plugin if it is missing, and relays the notes the Mac-side watchers leave, at login and every half hour until cleared. In South Horn it counts the demiatma and takes the FATEs and critical encounters of any kind already at three off BOCCHI's lists, so the autopilot farms only what is still needed. While BOCCHI runs there it also accepts a raise, thanks the raiser in /say, and returns to camp after a set time dead with no raise.",
     "InternalName": "XIVHelper",
     "ApplicableVersion": "any",
     "Tags": [
