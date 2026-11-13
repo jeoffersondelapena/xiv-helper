@@ -79,6 +79,16 @@ public class ReviveWatchTests
     }
 
     [Fact]
+    public void Rsr_is_re_armed_only_when_it_went_off_inside_an_activity_on_a_bocchi_run()
+    {
+        Assert.True(ReviveWatch.NeedsRearm(bocchiLoaded: true, inActivity: true, rsrActive: false));
+        Assert.False(ReviveWatch.NeedsRearm(bocchiLoaded: true, inActivity: true, rsrActive: true));
+        Assert.False(ReviveWatch.NeedsRearm(bocchiLoaded: true, inActivity: false, rsrActive: false));
+        Assert.False(ReviveWatch.NeedsRearm(bocchiLoaded: false, inActivity: true, rsrActive: false));
+        Assert.Equal(5, (byte)RsrMode.Henched);   // RSR's own enum order: Off, Auto, TargetOnly, Manual, AutoDuty, Henched, PvP
+    }
+
+    [Fact]
     public void The_return_line_names_the_wait()
     {
         Assert.Equal("dead for 20 s with no raise; returning to camp. BOCCHI carries on from there.", ReviveWatch.ReturnLine(20));

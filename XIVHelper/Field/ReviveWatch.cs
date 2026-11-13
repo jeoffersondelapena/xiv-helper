@@ -16,6 +16,19 @@ public enum PromptKind
     Other,
 }
 
+/// <summary>RSR's operating modes as its IPC takes them (RotationSolverReborn.ChangeOperatingMode, a byte enum). Henched is the
+/// mode BOCCHI drives it in.</summary>
+public enum RsrMode : byte
+{
+    Off,
+    Auto,
+    TargetOnly,
+    Manual,
+    AutoDuty,
+    Henched,
+    PvP,
+}
+
 /// <summary>What to do with the revive dialogs while the character lies dead in the Occult Crescent. BOCCHI itself only waits
 /// to be raised, with no way back to camp on its own.</summary>
 public static class ReviveWatch
@@ -36,6 +49,10 @@ public static class ReviveWatch
     public const uint HomePointPromptRow = 117;
     public const string RaisePrefixFallback = "Accept Raise";
     public const string ReturnPrefixFallback = "Return to";
+
+    // RSR's auto-off-on-death watches for 0 HP; BOCCHI re-arms RSR in the same instant the revive clears, while HP can still read 0,
+    // so RSR switches itself straight off again and BOCCHI, believing it on, never re-arms it until the next activity
+    public const double RearmAfterSeconds = 4;
 
     // the auto-translate phrase "Thank you." (Completion sheet, group 2, row 216), so every reader sees it in their own language
     public const uint ThanksGroup = 2;
@@ -77,6 +94,10 @@ public static class ReviveWatch
     /// <summary>The wait before returning, from the first line of the override file; the default when the file is missing or not a number.</summary>
     public static int ReturnAfterSeconds(string? firstLine) =>
         int.TryParse(firstLine?.Trim(), out var seconds) && seconds > 0 ? seconds : DefaultReturnAfterSeconds;
+
+    public static bool NeedsRearm(bool bocchiLoaded, bool inActivity, bool rsrActive) => bocchiLoaded && inActivity && !rsrActive;
+
+    public const string RearmLine = "RSR had switched itself off on the revive; set back to BOCCHI's mode.";
 
     public static string ReturnLine(int waitedSeconds) =>
         $"dead for {waitedSeconds} s with no raise; returning to camp. BOCCHI carries on from there.";

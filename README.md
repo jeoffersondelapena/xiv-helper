@@ -64,7 +64,12 @@ Reviving) and no FATE or
 critical encounter the character is still part of (the game's current FATE, or a dynamic-event id on the character, the
 same two tests BOCCHI uses); the 20 s clock restarts whenever one of those was true, so a cancelled raise or a finished
 FATE starts a fresh wait. Inside a FATE or CE it keeps waiting for a raise, which is likely there and keeps the credit. BOCCHI
-treats the respawn like any revive and carries on from camp. The wait comes from the first line of
+treats the respawn like any revive and carries on from camp. Four seconds after any revive inside a FATE or CE on a
+BOCCHI run, if RSR reports itself off, the plugin sets it back to Henched, the mode BOCCHI drives it in: RSR's
+auto-off-on-death watches for 0 HP, BOCCHI re-arms RSR in the same instant the unconscious flag clears while HP can
+still read 0, so RSR switches itself straight off again and BOCCHI, believing it on, never re-arms it until the next
+activity (seen 2026-11-13 as 24 s of standing still after a raise; inferred from RSR's and BOCCHI's code, since RSR logs
+no self-cancel). The wait comes from the first line of
 `revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is left to the
 player. (2026-11-13)
 

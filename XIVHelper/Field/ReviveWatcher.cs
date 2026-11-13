@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -41,6 +42,10 @@ internal sealed class ReviveWatcher
     private bool returnAnnounced;
     private bool holdAnnounced;
     private DateTime? thanksUntil;
+    private DateTime? rearmAt;
+    private readonly ICallGateSubscriber<bool> rsrActive;
+    private readonly ICallGateSubscriber<RsrMode, object> rsrMode;
+    private readonly ICallGateSubscriber<byte, object> rsrModeByte;
     private string? lastError;
 
     public ReviveWatcher(IDalamudPluginInterface pluginInterface, IClientState clientState, IObjectTable objects, ICondition condition, IGameGui gameGui,
@@ -59,6 +64,9 @@ internal sealed class ReviveWatcher
         this.log = log;
         this.diag = diag;
         returnAfterSeconds = ReviveWatch.ReturnAfterSeconds(ReadOverride());
+        rsrActive = pluginInterface.GetIpcSubscriber<bool>("RotationSolverReborn.AutorotationActive");
+        rsrMode = pluginInterface.GetIpcSubscriber<RsrMode, object>("RotationSolverReborn.ChangeOperatingMode");
+        rsrModeByte = pluginInterface.GetIpcSubscriber<byte, object>("RotationSolverReborn.ChangeOperatingMode");
     }
 
     public void Tick(DateTime now)
@@ -98,7 +106,13 @@ internal sealed class ReviveWatcher
         {
             deadSince = null;
             thanksUntil = now.AddSeconds(3);   // Transcendent lands a moment after a raise; a return never grants it
+            rearmAt = now.AddSeconds(ReviveWatch.RearmAfterSeconds);
             diag?.Invoke("revive: alive again");
+        }
+        if (rearmAt is { } due && now >= due)
+        {
+            rearmAt = null;
+            Rearm();
         }
         if (thanksUntil is { } until)
         {
@@ -157,6 +171,24 @@ internal sealed class ReviveWatcher
     }
 
     private bool Raised() => objects.LocalPlayer?.StatusList.Any(s => s.StatusId == ReviveWatch.Transcendent) ?? false;
+
+    private void Say(string line)
+    {
+        chat.Print("XIV Helper: " + line);
+        diag?.Invoke("revive: " + line);
+    }
+
+    private void Rearm()
+    {
+        bool active;
+        try { active = rsrActive.InvokeFunc(); }
+        catch (Exception) { return; }   // RSR not loaded: nothing to re-arm
+        if (!ReviveWatch.NeedsRearm(Bocchi.Instance(pluginInterface) is not null, InFateOrCriticalEncounter(), active)) return;
+        if (rsrMode.HasAction) rsrMode.InvokeAction(RsrMode.Henched);
+        else if (rsrModeByte.HasAction) rsrModeByte.InvokeAction((byte)RsrMode.Henched);
+        else return;
+        Say(ReviveWatch.RearmLine);
+    }
 
     private unsafe PromptKind Classify(AddonSelectYesno* prompt)
     {
