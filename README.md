@@ -66,9 +66,13 @@ so the raiser reads it in their own language. After 20 s with nothing going on i
 dialog and confirms it, with one line in the local chat log, visible to nobody else. "Nothing going on" means no raise on
 its way (nobody casting a raise spell or a Phoenix Down at the character, and the revive agent neither Revivable nor
 Reviving) and no FATE or
-critical encounter the character is still part of (the game's current FATE, or a dynamic-event id on the character, the
-same two tests BOCCHI uses); the 20 s clock restarts whenever one of those was true, so a cancelled raise or a finished
-FATE starts a fresh wait. Inside a FATE or CE it keeps waiting for a raise, which is likely there and keeps the credit. BOCCHI
+critical encounter still running that BOCCHI died in: the state BOCCHI's automator was in just before the death decides
+(InFate or InCriticalEncounter hold; InCombat with a stray mob, travel or idle do not), and the game's own FATE
+(FateManager.CurrentFate) and dynamic-event (DynamicEventContainer.CurrentEventId) tests say when it is over; with
+BOCCHI's state unreadable the game tests alone decide. The 20 s clock restarts whenever a hold was on, so a cancelled
+raise or a finished FATE starts a fresh wait. Inside BOCCHI's own FATE or CE it keeps waiting for a raise, which is
+likely there and keeps the credit. (Until 2026-11-13 evening the CE test read the character's event id, which the zone
+itself sets, so every death held forever; one did, and the player had to click Return.) BOCCHI
 treats the respawn like any revive and carries on from camp. Four seconds after any revive inside a FATE or CE on a
 BOCCHI run, if RSR reports itself off, the plugin sets it back to Henched, the mode BOCCHI drives it in: RSR's
 auto-off-on-death watches for 0 HP, BOCCHI re-arms RSR in the same instant the unconscious flag clears while HP can

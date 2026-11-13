@@ -97,6 +97,19 @@ public static class ReviveWatch
 
     public static bool NeedsRearm(bool bocchiLoaded, bool inActivity, bool rsrActive) => bocchiLoaded && inActivity && !rsrActive;
 
+    public const string InFate = "InFate";
+    public const string InCriticalEncounter = "InCriticalEncounter";
+
+    /// <summary>Whether the death is still "inside an activity": only a death BOCCHI took in a FATE or a CE holds the return, and only
+    /// while that activity still runs. A death to a stray mob, or with BOCCHI's state unreadable, follows the game's own tests.</summary>
+    public static bool HoldFor(string? diedIn, bool fateRunning, bool ceRunning) => diedIn switch
+    {
+        InFate => fateRunning,
+        InCriticalEncounter => ceRunning,
+        null => fateRunning || ceRunning,
+        _ => false,
+    };
+
     public const string RearmLine = "RSR had switched itself off on the revive; set back to BOCCHI's mode.";
 
     // attention notes: lowercase problem, time, consequence; XIV Helper repeats them with the paste-it-on instruction until cleared

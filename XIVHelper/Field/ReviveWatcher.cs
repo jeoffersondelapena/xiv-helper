@@ -6,8 +6,8 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
+using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using Lumina.Excel.Sheets;
@@ -39,6 +39,8 @@ internal sealed class ReviveWatcher
     private readonly int returnAfterSeconds;
     private DateTime lastPoll = DateTime.MinValue;
     private DateTime? deadSince;
+    private string? lastAliveState;
+    private string? diedIn;
     private DateTime lastBusy;
     private ulong lastCaster;
     private DateTime lastAsk = DateTime.MinValue;
@@ -103,15 +105,22 @@ internal sealed class ReviveWatcher
     private unsafe void Poll(DateTime now)
     {
         var dead = condition[ConditionFlag.Unconscious];
+        if (!dead && deadSince is null)
+        {
+            // BOCCHI's state turns to Dead with the death itself, so the state it died in is the one seen just before
+            var state = Bocchi.State(pluginInterface);
+            if (state is not null && state != "Dead") lastAliveState = state;
+        }
         if (dead && deadSince is null)
         {
             if (!OnRun()) return;   // not a BOCCHI run: the player decides
             deadSince = now;
+            diedIn = lastAliveState;
             lastBusy = now;
             lastCaster = 0;
             returnAnnounced = false;
             holdAnnounced = false;
-            diag?.Invoke("revive: dead");
+            diag?.Invoke($"revive: dead (BOCCHI was {diedIn ?? "unknown"})");
         }
         if (!dead && deadSince is not null)
         {
@@ -150,7 +159,7 @@ internal sealed class ReviveWatcher
         if (inActivity && (now - since).TotalSeconds >= returnAfterSeconds && !holdAnnounced)
         {
             holdAnnounced = true;
-            diag?.Invoke("revive: holding the return until the FATE or CE is over");
+            diag?.Invoke($"revive: holding the return until the {(diedIn == ReviveWatch.InFate ? "FATE" : "CE")} is over");
         }
         var move = ReviveWatch.Next(true, idleFor, raiseIncoming, kind, inActivity, returnAfterSeconds);
         switch (move)
@@ -253,13 +262,14 @@ internal sealed class ReviveWatcher
         return true;
     }
 
-    // the same two tests BOCCHI uses: the FATE the game has the character in, and the dynamic event it is signed up to
+    // the game's own tests: the FATE it has the character in, and the dynamic event the character is signed up to
     private unsafe bool InFateOrCriticalEncounter()
     {
         var fates = FateManager.Instance();
-        if (fates != null && fates->CurrentFate != null) return true;
-        var player = objects.LocalPlayer;
-        return player != null && ((Character*)player.Address)->EventId.EntryId != 0;
+        var fateRunning = fates != null && fates->CurrentFate != null;
+        var events = DynamicEventContainer.GetInstance();
+        var ceRunning = events != null && events->CurrentEventId != 0;
+        return ReviveWatch.HoldFor(diedIn, fateRunning, ceRunning);
     }
 
     private unsafe void SayThanks()

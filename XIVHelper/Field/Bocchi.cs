@@ -47,18 +47,42 @@ internal static class Bocchi
         }
     }
 
+    /// <summary>The automator's current state by name ("InFate", "InCriticalEncounter", "Dead", …), or null when BOCCHI is not loaded,
+    /// idle, or the state cannot be read.</summary>
+    public static string? State(IDalamudPluginInterface pluginInterface)
+    {
+        try
+        {
+            var instance = Instance(pluginInterface);
+            if (instance is null) return null;
+            var (type, automator) = Automator(instance);
+            return automator is null ? null : type!.GetProperty("CurrentState")?.GetValue(automator)?.ToString();
+        }
+        catch (Exception)
+        {
+            return null;   // OnRun reports the broken member; the callers fall back to the game's own tests
+        }
+    }
+
     private static bool? Running(object instance)
     {
+        var (type, automator) = Automator(instance);
+        if (automator is null) return null;
+        return type!.GetProperty("Enabled")?.GetValue(automator) as bool?
+               ?? throw new InvalidOperationException("IAutomator.Enabled is missing");
+    }
+
+    private static (Type? Type, object? Automator) Automator(object instance)
+    {
         var services = Field(instance, "services") as IServiceProvider;
-        if (services is null) return null;
+        if (services is null) return (null, null);
         var assembly = AssemblyLoadContext.GetLoadContext(instance.GetType().Assembly)?.Assemblies
                            .FirstOrDefault(a => a.GetName().Name == "BOCCHI.Automator")
                        ?? throw new InvalidOperationException("BOCCHI.Automator is not loaded beside BOCCHI");
         var type = assembly.GetType("BOCCHI.Automator.Services.IAutomator")
                    ?? throw new InvalidOperationException("type BOCCHI.Automator.Services.IAutomator is missing");
         var automator = services.GetService(type) ?? throw new InvalidOperationException("IAutomator is not in BOCCHI's container");
-        return type.GetProperty("Enabled")?.GetValue(automator) as bool?
-               ?? throw new InvalidOperationException("IAutomator.Enabled is missing");
+        return (type, automator);
     }
 
     private static object? Field(object owner, string name)

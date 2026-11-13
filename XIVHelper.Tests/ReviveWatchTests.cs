@@ -89,6 +89,19 @@ public class ReviveWatchTests
     }
 
     [Fact]
+    public void Only_a_death_inside_bocchis_fate_or_ce_holds_the_return_and_only_while_it_runs()
+    {
+        Assert.True(ReviveWatch.HoldFor(ReviveWatch.InFate, fateRunning: true, ceRunning: false));
+        Assert.False(ReviveWatch.HoldFor(ReviveWatch.InFate, fateRunning: false, ceRunning: true));
+        Assert.True(ReviveWatch.HoldFor(ReviveWatch.InCriticalEncounter, fateRunning: false, ceRunning: true));
+        Assert.False(ReviveWatch.HoldFor(ReviveWatch.InCriticalEncounter, fateRunning: true, ceRunning: false));
+        Assert.False(ReviveWatch.HoldFor("InCombat", fateRunning: true, ceRunning: true));
+        Assert.False(ReviveWatch.HoldFor("Pathfinding", fateRunning: true, ceRunning: true));
+        Assert.True(ReviveWatch.HoldFor(null, fateRunning: false, ceRunning: true));
+        Assert.False(ReviveWatch.HoldFor(null, fateRunning: false, ceRunning: false));
+    }
+
+    [Fact]
     public void The_notes_name_the_problem_the_time_and_the_consequence()
     {
         var at = new DateTime(2026, 11, 13, 17, 40, 0);
