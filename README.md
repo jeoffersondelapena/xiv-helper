@@ -89,8 +89,9 @@ On by default: it only ever acts on the timer's kick during a BOCCHI run. `/help
 
 While the character is in South or North Horn the plugin reads the instance timer from the game's public content director every
 half second. When the zone changes with that reading at 20 s or less the timer did it; a voluntary leave, a disconnect
-or a teleport out shows minutes or hours left and is left alone. A BOCCHI run must have been on inside (remembered from
-the last poll before the kick, since the automation stops with it); nothing else gates it, the currencies are worth
+or a teleport out shows minutes or hours left and is left alone. A BOCCHI run must have been on inside within the last
+minute before the exit (BOCCHI stops its run on the kick's loading screen, before the zone id changes, so the last poll
+alone would always say no, as it did on 2026-11-13 at 20:58); nothing else gates it, the currencies are worth
 the trips after the demiatma are done. The way back follows what the game shows: land in Phantom Village (territory 1269 or 1278), walk to the Expedition
 Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick the menu entry that names
 the horn you were thrown out of (the game's SelectString), confirm the yes/no that names it, press Commence on the duty

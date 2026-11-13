@@ -29,6 +29,16 @@ public class HornWatchTests
     }
 
     [Fact]
+    public void A_run_seen_within_the_last_minute_still_counts_at_the_exit()
+    {
+        var now = new DateTime(2026, 11, 13, 20, 58, 47);
+        Assert.True(HornWatch.RunWasOn(now.AddSeconds(-2), now));
+        Assert.True(HornWatch.RunWasOn(now.AddSeconds(-59), now));
+        Assert.False(HornWatch.RunWasOn(now.AddSeconds(-61), now));
+        Assert.False(HornWatch.RunWasOn(null, now));
+    }
+
+    [Fact]
     public void The_duty_window_gets_the_long_wait()
     {
         Assert.Equal(HornWatch.QueueTimeoutSeconds, HornWatch.TimeoutFor(HornStep.Commence));
@@ -42,6 +52,9 @@ public class HornWatchTests
         Assert.True(HornWatch.ParseToggle(null));
         Assert.False(HornWatch.ParseToggle("off"));
         Assert.False(HornWatch.ParseToggle(" OFF \n"));
+        Assert.True(HornWatch.ReadSwitch(fileExists: false, firstLine: null));
+        Assert.True(HornWatch.ReadSwitch(fileExists: true, firstLine: "on"));
+        Assert.False(HornWatch.ReadSwitch(fileExists: true, firstLine: "off"));
     }
 
     [Fact]

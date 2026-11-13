@@ -68,8 +68,9 @@ internal static class Bocchi
     {
         var (type, automator) = Automator(instance);
         if (automator is null) return null;
-        return type!.GetProperty("Enabled")?.GetValue(automator) as bool?
-               ?? throw new InvalidOperationException("IAutomator.Enabled is missing");
+        // IsActive covers every run mode (Illegal Mode, Pots & Treasure, Completionist); Enabled is Illegal Mode alone
+        return type!.GetProperty("IsActive")?.GetValue(automator) as bool?
+               ?? throw new InvalidOperationException("IAutomator.IsActive is missing");
     }
 
     private static (Type? Type, object? Automator) Automator(object instance)

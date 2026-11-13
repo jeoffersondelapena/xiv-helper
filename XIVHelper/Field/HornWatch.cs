@@ -30,6 +30,9 @@ public static class HornWatch
     public const double StepTimeoutSeconds = 90;
     public const double QueueTimeoutSeconds = 600; // the duty window waits on a free instance
     public const double BocchiDelaySeconds = 5;
+    public const double RunMemorySeconds = 60;    // BOCCHI stops its run on the kick's loading screen, before the zone id changes
+
+    public static bool RunWasOn(DateTime? lastRunAt, DateTime now) => lastRunAt is { } t && (now - t).TotalSeconds <= RunMemorySeconds;
 
     public static bool WasKicked(double? timeLeftAtExit) => timeLeftAtExit is { } t && t <= KickSeconds;
 
@@ -46,6 +49,9 @@ public static class HornWatch
 
     // on unless the file says off: the re-entry only ever acts on the timer's kick during a BOCCHI run
     public static bool ParseToggle(string? text) => !string.Equals(text?.Trim(), "off", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>No file means on.</summary>
+    public static bool ReadSwitch(bool fileExists, string? firstLine) => !fileExists || ParseToggle(firstLine);
 
     public static string ToggleLine(bool on) => on
         ? "re-entry on: when a horn's timer throws you out during a BOCCHI run, XIV Helper takes you back in and starts BOCCHI."

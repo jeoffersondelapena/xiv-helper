@@ -33,7 +33,7 @@ internal sealed class HornReentry
     private readonly ICallGateSubscriber<object> stopMoving;
     private readonly string togglePath;
     private bool enabled;
-    private bool runSeen;
+    private DateTime? lastRunAt;
     private uint wasInHorn;
     private uint target;
     private double? lastTimeLeft;
@@ -107,8 +107,9 @@ internal sealed class HornReentry
         {
             var director = EventFramework.Instance()->GetPublicContentDirector();
             if (director != null) lastTimeLeft = director->ContentTimeLeft;
-            // the automation stops with the kick, so whether a run was on is remembered from inside
-            runSeen = OnRun();
+            // the automation stops on the kick's loading screen, so the run is remembered from the last moment it was on
+            var loading = condition[ConditionFlag.BetweenAreas] || condition[ConditionFlag.BetweenAreas51];
+            if (!loading && OnRun()) lastRunAt = now;
             wasInHorn = territory;
             if (noted)
             {
@@ -123,8 +124,10 @@ internal sealed class HornReentry
         wasInHorn = 0;
         var timeLeft = lastTimeLeft;
         lastTimeLeft = null;
-        diag?.Invoke($"horn: left {name}, timer read {timeLeft?.ToString("0.0") ?? "none"} s");
-        if (!enabled || !runSeen) return;
+        var runWasOn = HornWatch.RunWasOn(lastRunAt, now);
+        lastRunAt = null;
+        diag?.Invoke($"horn: left {name}, timer read {timeLeft?.ToString("0.0") ?? "none"} s, run on within {HornWatch.RunMemorySeconds:0} s: {runWasOn}, switch {(enabled ? "on" : "off")}");
+        if (!enabled || !runWasOn) return;
         if (!HornWatch.WasKicked(timeLeft))
         {
             diag?.Invoke("horn: " + HornWatch.LeftLine(name, timeLeft));
@@ -292,8 +295,8 @@ internal sealed class HornReentry
 
     private bool ReadToggle()
     {
-        try { return File.Exists(togglePath) && HornWatch.ParseToggle(File.ReadLines(togglePath).FirstOrDefault()); }
-        catch (Exception ex) { log.Warning(ex, "re-entry switch unreadable; treating it as off"); return false; }
+        try { return HornWatch.ReadSwitch(File.Exists(togglePath), File.Exists(togglePath) ? File.ReadLines(togglePath).FirstOrDefault() : null); }
+        catch (Exception ex) { log.Warning(ex, "re-entry switch unreadable; treating it as on"); return true; }
     }
 
     private void WriteToggle()
