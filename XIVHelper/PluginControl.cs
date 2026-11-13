@@ -60,7 +60,8 @@ internal static class PluginControl
         return (type.GetProperty("DllFile", Any)?.GetValue(plugin) as FileInfo)?.FullName;
     }
 
-    private static (object plugin, Type type)? Find(IDalamudPluginInterface pluginInterface, string internalName)
+    /// <summary>Dalamud's record of an installed plugin and its type, or null when it is not installed.</summary>
+    public static (object plugin, Type type)? Find(IDalamudPluginInterface pluginInterface, string internalName)
     {
         var dalamud = pluginInterface.GetType().Assembly;
         var managerType = dalamud.GetType("Dalamud.Plugin.Internal.PluginManager", throwOnError: true)!;

@@ -4,6 +4,7 @@ using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Game.Chat;
 using Dalamud.Plugin.Services;
+using XIVHelper.Demiatma;
 using XIVHelper.HotbarButton;
 
 namespace XIVHelper;
@@ -35,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly DiagLog? diag;
     private readonly FrameWatch? frameWatch;
     private readonly RsrButton? rsrButton;
+    private readonly DemiatmaWatcher? demiatma;
     private int busy;
     private DateTime? reminderShownAt;
     private DateTime lastReminderCheck = DateTime.MinValue;
@@ -64,6 +66,15 @@ public sealed class Plugin : IDalamudPlugin
         frameWatch = diag is null ? null : new FrameWatch(diag.Write);
         LoginReport.Instruction = ReadInstruction();
         diag?.Write($"XIV Helper {typeof(Plugin).Assembly.GetName().Version} loaded, pid {Environment.ProcessId}");
+        try
+        {
+            demiatma = new DemiatmaWatcher(pluginInterface, clientState, chat, log, diag is null ? null : diag.Write);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "the demiatma watch could not be set up");
+            diag?.Write($"demiatma watch unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
 
         clientState.Login += OnLogin;
         clientState.TerritoryChanged += OnTerritoryChanged;
@@ -72,7 +83,7 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button",
+            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the counts and what BOCCHI skips",
         });
 
         try
@@ -238,6 +249,7 @@ public sealed class Plugin : IDalamudPlugin
             WriteMemory();
         }
         if (clientState.IsLoggedIn) PollRebuilds(now);
+        demiatma?.Tick(now);
         if ((now - lastReminderCheck).TotalSeconds < 60 || loginAt is not null || !clientState.IsLoggedIn)
             return;
         lastReminderCheck = now;
@@ -307,6 +319,11 @@ public sealed class Plugin : IDalamudPlugin
         if (args.Trim() == "button")
         {
             OpenButtonWindow();
+            return;
+        }
+        if (args.Trim() == "demiatma")
+        {
+            chat.Print("XIV Helper: " + (demiatma?.Status() ?? "the demiatma watch could not be set up in this session; see the Dalamud log."));
             return;
         }
 

@@ -3,12 +3,13 @@
 Renamed from XIV Doctor on 2026-11-03: it is outgrowing the overlays (a Rotation Solver Reborn state button is next), so the name follows what it does. 
 Renamed from Overlay Doctor on 2026-09-29: it now fronts the overlays, the Mac-side watchers' notes and a fix command, so the old name had grown too narrow. The command is `/helper`.
 
-One in-game command that brings the ACT overlay stack back and relays the Mac's notes: `/helper`.
+One in-game command that brings the ACT overlay stack back, relays the Mac's notes and reports the demiatma: `/helper`.
 
 ```
 /helper            how the IINACT parser and the Browsingway renderer are right now
 /helper fix        restart whichever layer is unwell, or load a plugin that is missing
 /helper button     a window with the RSR hotbar button to drag onto a hotbar slot
+/helper demiatma   the six demiatma counts and which kinds BOCCHI is told to skip
 ```
 
 ## The RSR hotbar button
@@ -32,6 +33,9 @@ plugins) and reaches for Dalamud's plugin manager only to load a plugin that is 
 | `XIVHelper/Doctor.cs` | the decision: which steps, in which order (pure, tested) |
 | `XIVHelper/PluginControl.cs` | load or reload another plugin through Dalamud's internals |
 | `XIVHelper/Plugin.cs` | the command, the IPC calls, the chat lines |
+| `XIVHelper/Demiatma/DemiatmaWatch.cs` | the demiatma tables and which ids go on or off BOCCHI's lists (pure, tested) |
+| `XIVHelper/Demiatma/DemiatmaWatcher.cs` | the five-second poll in South Horn, the chat lines, the record of the plugin's own skips |
+| `XIVHelper/Demiatma/BocchiLists.cs` | reaches BOCCHI's live disabled-id sets through its service container |
 | `XIVHelper/DiagLog.cs` | the per-window diagnostic log and its once-a-minute heartbeat |
 | `XIVHelper.Tests/` | xunit; runs before every commit once the hook is enabled |
 
@@ -43,6 +47,29 @@ in the config folder). The Mac-side freeze watcher in `xiv-mac-tools` reads that
 while the game process lives is a frozen frame loop, and a last line of `unloading` is the plugin switched off on
 purpose. When the game itself is closing the line is `unloading; game closing`: a process still alive two minutes
 after that has stopped closing, and the watcher ends it. The `heartbeat:` prefix and those two lines are a contract with the watcher. Once a minute a `memory:` line gives the managed heap, what the runtime has committed, how much of the process is in RAM at that moment (its working set, which falls when the system swaps the window out; the `Process` sizes are not used because under Wine on macOS they ask the Wine server for every process and come back 0), the players in view, the territory, and the longest wait between two frames in that minute with the time it ended; the watcher's memory report reads it beside the Mac's own figures for the window, and holds each of its own readings against that longest frame so a reading that is felt in the game shows. A timer thread adds `frame loop stalled Ns; …` lines while the frame loop is not ticking (with a few runtime counters, so a capture shows whether other managed threads still run) and `frame loop resumed` when it ends; the watcher reads those too.
+
+## Demiatma skips for BOCCHI
+
+`/helper demiatma` prints the six demiatma counts and which kinds are being skipped.
+
+In South Horn, every five seconds while BOCCHI is loaded, the plugin counts the six demiatma in the inventory. For every
+kind already at three it puts that kind's FATEs and critical encounters on BOCCHI's two disabled-id lists, so Illegal
+Mode farms only what the Phantom Weapon quest still needs; a kind that drops under three again (handed in, or another
+character) gets exactly the ids the plugin added taken back out, and anything the player disabled by hand is never
+touched. A complete kind's activity turned back on by hand goes off again on the next poll. The two pot FATEs
+(Persistent Pots, Pleading Pots) are left alone because they also feed BOCCHI's pot-chest farming. Each change is one
+chat line; when all six are complete the line says so, and with every demiatma activity off BOCCHI returns to camp and
+waits there (its Idle state hands off to Returning). The drop table is BOCCHI's own (`OccultEventDrops.cs`, 4.2.0.19),
+copied into `Demiatma/DemiatmaWatch.cs`; the ids are the game's FATE and DynamicEvent ids.
+
+Why the live lists rather than BOCCHI's config file (decided 2026-11-13): BOCCHI has no IPC or command for the lists and
+reads its file only when it loads, so steering it through the file would mean a reload in the middle of a run and a
+blind `/bocchi illegal on` afterwards. Its autopilot checks the two `HashSet<uint>` on every decision, so adding an id to
+the live set takes effect at once. The sets are reached through Dalamud's plugin list and BOCCHI's service container by
+reflection (`Demiatma/BocchiLists.cs`; member names as of BOCCHI 4.2.0.19 and Ocelot). When a BOCCHI update renames one,
+the plugin prints one chat line per BOCCHI load naming the member and leaves the lists alone; untick by hand until this
+file is adjusted. The ids the plugin added are kept in `demiatma-skips.json` in the config folder so they are recognised
+as its own after a restart.
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
 The first build enables the versioned pre-commit hook (`git config core.hooksPath .githooks`).

@@ -17,6 +17,7 @@
 		<Compile Include="..\XIVHelper\LoginReport.cs" Link="LoginReport.cs" />
 		<Compile Include="..\XIVHelper\AttentionFile.cs" Link="AttentionFile.cs" />
 		<Compile Include="..\XIVHelper\HotbarButton\RsrState.cs" Link="RsrState.cs" />
+		<Compile Include="..\XIVHelper\Demiatma\DemiatmaWatch.cs" Link="DemiatmaWatch.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
