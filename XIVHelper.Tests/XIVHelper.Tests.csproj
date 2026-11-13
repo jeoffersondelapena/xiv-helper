@@ -19,6 +19,7 @@
 		<Compile Include="..\XIVHelper\HotbarButton\RsrState.cs" Link="RsrState.cs" />
 		<Compile Include="..\XIVHelper\Demiatma\DemiatmaWatch.cs" Link="DemiatmaWatch.cs" />
 		<Compile Include="..\XIVHelper\Field\ReviveWatch.cs" Link="ReviveWatch.cs" />
+		<Compile Include="..\XIVHelper\Field\HornWatch.cs" Link="HornWatch.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

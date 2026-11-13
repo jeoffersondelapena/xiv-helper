@@ -136,6 +136,13 @@ internal sealed class DemiatmaWatcher
         diag?.Invoke("demiatma: " + line);
     }
 
+    /// <summary>True once every kind is at three in the inventory; false while the inventory is not readable.</summary>
+    public static bool AllComplete()
+    {
+        var counts = Counts();
+        return counts is not null && DemiatmaWatch.Complete(counts).Count == DemiatmaWatch.Kinds.Count;
+    }
+
     private static unsafe Dictionary<DemiatmaKind, int>? Counts()
     {
         var inventory = InventoryManager.Instance();

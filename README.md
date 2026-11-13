@@ -10,6 +10,7 @@ One in-game command that brings the ACT overlay stack back, relays the Mac's not
 /helper fix        restart whichever layer is unwell, or load a plugin that is missing
 /helper button     a window with the RSR hotbar button to drag onto a hotbar slot
 /helper demiatma   the six demiatma counts and which kinds BOCCHI is told to skip
+/helper horn       re-entry into South Horn after its timer: on, off, or the current state
 ```
 
 ## The RSR hotbar button
@@ -38,6 +39,8 @@ plugins) and reaches for Dalamud's plugin manager only to load a plugin that is 
 | `XIVHelper/Demiatma/BocchiLists.cs` | reaches BOCCHI's live disabled-id sets through its service container |
 | `XIVHelper/Field/ReviveWatch.cs` | which revive dialog to answer when, and the thank-you phrase (pure, tested) |
 | `XIVHelper/Field/ReviveWatcher.cs` | the half-second poll while dead in the Crescent, the chat line, the `/say` |
+| `XIVHelper/Field/HornWatch.cs` | when a zone change counts as the timer's kick, the menu match, the timeouts (pure, tested) |
+| `XIVHelper/Field/HornReentry.cs` | the timer read, the walk to the coordinator, the dialogs, Commence, the BOCCHI start |
 | `XIVHelper/DiagLog.cs` | the per-window diagnostic log and its once-a-minute heartbeat |
 | `XIVHelper.Tests/` | xunit; runs before every commit once the hook is enabled |
 
@@ -90,6 +93,22 @@ FATE starts a fresh wait. Inside a FATE or CE it keeps waiting for a raise, whic
 treats the respawn like any revive and carries on from camp. The wait comes from the first line of
 `revive-return-seconds.txt` in the config folder when that file exists. A death outside a BOCCHI run is left to the
 player. (2026-11-13)
+
+## Back into South Horn after the timer
+
+`/helper horn on` switches it on, `/helper horn off` off, `/helper horn` shows the state; the setting lives in `horn.txt` in
+the config folder and survives reloads. Off by default.
+
+While the character is in South Horn the plugin reads the instance timer from the game's public content director every
+half second. When the zone changes with that reading at 20 s or less the timer did it; a voluntary leave, a disconnect
+or a teleport out shows minutes or hours left and is left alone. BOCCHI must be loaded, and once all six demiatma are
+complete it stays out and says so. The way back follows what the game shows: land in Phantom Village (territory 1269 or
+1278), walk to the Expedition Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick
+the menu entry that names South Horn (the game's SelectString), confirm the yes/no that names it, press Commence on the
+duty window (ContentsFinderConfirm, callback 8), wait for South Horn to load, then after 5 s send `/bocchi illegal on`.
+Every step has a timeout (90 s, 10 min for the duty window since it waits on a free instance); on a timeout it stops,
+says where, and leaves the rest to the player. The timer reading at each exit goes to the diagnostic log, so the first
+real kick shows whether the 20 s threshold holds. (2026-11-13)
 
 Build: `dotnet build XIVHelper -c Release` (needs a Dalamud dev install; on macOS XIV on Mac's).
 The first build enables the versioned pre-commit hook (`git config core.hooksPath .githooks`).

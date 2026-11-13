@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly RsrButton? rsrButton;
     private readonly DemiatmaWatcher? demiatma;
     private readonly ReviveWatcher? revive;
+    private readonly HornReentry? horn;
     private int busy;
     private DateTime? reminderShownAt;
     private DateTime lastReminderCheck = DateTime.MinValue;
@@ -86,6 +87,15 @@ public sealed class Plugin : IDalamudPlugin
             log.Error(ex, "the revive watch could not be set up");
             diag?.Write($"revive watch unavailable: {ex.GetType().Name}: {ex.Message}");
         }
+        try
+        {
+            horn = new HornReentry(pluginInterface, clientState, objects, condition, gameGui, commands, chat, log, diag is null ? null : diag.Write);
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "the re-entry watch could not be set up");
+            diag?.Write($"re-entry watch unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
 
         clientState.Login += OnLogin;
         clientState.TerritoryChanged += OnTerritoryChanged;
@@ -94,7 +104,7 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the counts and what BOCCHI skips",
+            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the counts and what BOCCHI skips; horn on|off: go back into South Horn after its timer",
         });
 
         try
@@ -262,6 +272,7 @@ public sealed class Plugin : IDalamudPlugin
         if (clientState.IsLoggedIn) PollRebuilds(now);
         demiatma?.Tick(now);
         revive?.Tick(now);
+        horn?.Tick(now);
         if ((now - lastReminderCheck).TotalSeconds < 60 || loginAt is not null || !clientState.IsLoggedIn)
             return;
         lastReminderCheck = now;
@@ -331,6 +342,11 @@ public sealed class Plugin : IDalamudPlugin
         if (args.Trim() == "button")
         {
             OpenButtonWindow();
+            return;
+        }
+        if (args.Trim().StartsWith("horn", StringComparison.OrdinalIgnoreCase))
+        {
+            chat.Print("XIV Helper: " + (horn?.Command(args.Trim().Substring(4)) ?? "the re-entry watch could not be set up in this session; see the Dalamud log."));
             return;
         }
         if (args.Trim() == "demiatma")
