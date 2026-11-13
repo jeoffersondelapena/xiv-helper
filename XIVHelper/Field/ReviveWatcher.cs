@@ -19,7 +19,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace XIVHelper.Field;
 
 /// <summary>While BOCCHI runs in the Occult Crescent: accepts a raise, says thanks for it, returns to camp after a set
-/// time dead with no raise in sight, and arms RSR and BossMod for a fight BOCCHI leaves unarmed. Frame thread only.</summary>
+/// time dead with no raise in sight, and arms RSR and BossMod Reborn for a fight BOCCHI leaves unarmed. Frame thread only.</summary>
 internal sealed class ReviveWatcher
 {
     private readonly IDalamudPluginInterface pluginInterface;
@@ -209,7 +209,7 @@ internal sealed class ReviveWatcher
         bool rsrOn;
         try { rsrOn = rsrActive.InvokeFunc(); }
         catch (Exception) { return; }   // RSR not loaded: nothing to arm
-        // with BossMod's preset out of reach (noted once), RSR alone counts as armed, or this would fire every two seconds
+        // with BossMod Reborn's preset out of reach (noted once), RSR alone counts as armed, or this would fire every two seconds
         var armed = rsrOn && (defenceNoted || ReviveWatch.IsBocchiPreset(ActivePreset()));
         if (armed)
         {
@@ -222,13 +222,13 @@ internal sealed class ReviveWatcher
         ArmDefence();
     }
 
-    // BOCCHI's own order: the BossMod preset that picks and walks to targets first, then RSR
+    // BOCCHI's own order: the BossMod Reborn preset that picks and walks to targets first, then RSR
     private void ArmDefence()
     {
         var preset = ReviveWatch.DefencePreset(CeRunning());
         if (ActivatePreset(preset))
         {
-            diag?.Invoke($"revive: BossMod preset {preset} active");
+            diag?.Invoke($"revive: BossMod Reborn preset {preset} active");
             if (defenceNoted)
             {
                 defenceNoted = false;
@@ -238,9 +238,9 @@ internal sealed class ReviveWatcher
         else if (!defenceNoted)
         {
             defenceNoted = true;
-            log.Warning($"BossMod has no preset named {preset}");
-            diag?.Invoke($"revive: BossMod has no preset named {preset}");
-            chat.PrintError($"XIV Helper: BossMod has no preset named \"{preset}\"; RSR alone only hits a target picked by hand.");
+            log.Warning($"BossMod Reborn has no preset named {preset}");
+            diag?.Invoke($"revive: BossMod Reborn has no preset named {preset}");
+            chat.PrintError($"XIV Helper: BossMod Reborn has no preset named \"{preset}\"; RSR alone only hits a target picked by hand.");
             attention("Defence", ReviveWatch.DefenceNote(preset, DateTime.Now));
         }
         if (ArmHenched()) Say(ReviveWatch.DefendLine);
@@ -257,7 +257,7 @@ internal sealed class ReviveWatcher
         try { return bmrSetActive.HasFunction && bmrSetActive.InvokeFunc(name); }
         catch (Exception ex)
         {
-            log.Warning(ex, "BossMod preset activation failed");
+            log.Warning(ex, "BossMod Reborn preset activation failed");
             return false;
         }
     }

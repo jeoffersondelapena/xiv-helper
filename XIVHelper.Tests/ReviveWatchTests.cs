@@ -122,7 +122,7 @@ public class ReviveWatchTests
         Assert.False(ReviveWatch.IsBocchiPreset("AutoDuty"));
         Assert.False(ReviveWatch.IsBocchiPreset(""));
         Assert.False(ReviveWatch.IsBocchiPreset(null));
-        Assert.Equal("BossMod has no preset named \"BOCCHI AI MOB\" since 21:32; a stray fight gets RSR alone, which only hits a target picked by hand",
+        Assert.Equal("BossMod Reborn has no preset named \"BOCCHI AI MOB\" since 21:32; a stray fight gets RSR alone, which only hits a target picked by hand",
             ReviveWatch.DefenceNote("BOCCHI AI MOB", new DateTime(2026, 11, 13, 21, 32, 0)));
     }
 

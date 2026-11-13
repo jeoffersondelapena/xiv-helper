@@ -73,15 +73,15 @@ BOCCHI's state unreadable the game tests alone decide. The 20 s clock restarts w
 raise or a finished FATE starts a fresh wait. Inside BOCCHI's own FATE or CE it keeps waiting for a raise, which is
 likely there and keeps the credit. (Until 2026-11-13 evening the CE test read the character's event id, which the zone
 itself sets, so every death held forever; one did, and the player had to click Return.) BOCCHI
-treats the respawn like any revive and carries on from camp. BOCCHI arms RSR and its BossMod targeting preset only inside its own activities, so a stray mob
+treats the respawn like any revive and carries on from camp. BOCCHI arms RSR and its BossMod Reborn targeting preset only inside its own activities, so a stray mob
 that catches the character between them, or a critical encounter BOCCHI gave up on while the character already stood
 registered inside it (both its InCombat state), is taken standing still, to the death if the mob does not leash. After
-two seconds of that state with either half off, during a run, the plugin activates BOCCHI's own BossMod preset
+two seconds of that state with either half off, during a run, the plugin activates BOCCHI's own BossMod Reborn preset
 ("BOCCHI AI CE" inside a critical encounter, "BOCCHI AI MOB" otherwise; both target anything hostile and walk to it)
 and sets RSR to Henched, and BOCCHI switches both off again when its state moves on. RSR alone would not do: in Henched,
-as in Manual, it only hits the target the player picked, and BossMod's preset is what picks one. (Seen 2026-11-13 21:32:
+as in Manual, it only hits the target the player picked, and BossMod Reborn's preset is what picks one. (Seen 2026-11-13 21:32:
 BOCCHI dropped Eternal Watch as "no longer Preparing and not committed" with the character standing inside, then four
-deaths with nothing armed; an earlier build of this arming set RSR alone.) When BossMod has no preset by that name, after
+deaths with nothing armed; an earlier build of this arming set RSR alone.) When BossMod Reborn has no preset by that name, after
 a BOCCHI rename, the plugin says so once in chat, leaves an attention note until a later activation works, and arms RSR
 alone. Four seconds
 after any revive inside a FATE or CE on a BOCCHI run, if RSR reports itself off, the plugin sets it back to Henched, the mode BOCCHI drives it in: RSR's
