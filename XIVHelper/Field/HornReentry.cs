@@ -118,11 +118,6 @@ internal sealed class HornReentry
             diag?.Invoke("horn: " + HornWatch.LeftLine(name, timeLeft));
             return;
         }
-        if (horn == HornWatch.SouthHorn && DemiatmaWatcher.AllComplete())
-        {
-            Say(HornWatch.DoneLine);
-            return;
-        }
         target = horn;
         Say(HornWatch.KickedLine(name, timeLeft!.Value));
         Enter(HornStep.Armed, now);

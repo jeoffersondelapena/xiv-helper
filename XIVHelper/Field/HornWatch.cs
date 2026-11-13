@@ -60,5 +60,4 @@ public static class HornWatch
     public static string GaveUpLine(HornStep step) => $"re-entry stopped at {step}; take it from there by hand.";
 
     public static string EnteredLine(string horn) => $"back in {horn}; BOCCHI started.";
-    public const string DoneLine = "all six demiatma complete; not going back in.";
 }

@@ -71,7 +71,7 @@ public sealed class Plugin : IDalamudPlugin
         diag?.Write($"XIV Helper {typeof(Plugin).Assembly.GetName().Version} loaded, pid {Environment.ProcessId}");
         try
         {
-            demiatma = new DemiatmaWatcher(pluginInterface, clientState, chat, log, diag is null ? null : diag.Write);
+            demiatma = new DemiatmaWatcher(clientState, chat, diag is null ? null : diag.Write);
         }
         catch (Exception ex)
         {
@@ -104,7 +104,7 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the counts and what BOCCHI skips; horn on|off: go back into South Horn after its timer",
+            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; demiatma: the six counts; horn on|off: go back into the horn after its timer",
         });
 
         try
