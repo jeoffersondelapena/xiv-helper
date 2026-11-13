@@ -184,11 +184,21 @@ internal sealed class ReviveWatcher
         try { active = rsrActive.InvokeFunc(); }
         catch (Exception) { return; }   // RSR not loaded: nothing to re-arm
         if (!ReviveWatch.NeedsRearm(Bocchi.Instance(pluginInterface) is not null, InFateOrCriticalEncounter(), active)) return;
+        if (ArmHenched()) Say(ReviveWatch.RearmLine);
+    }
+
+    /// <summary>Puts RSR in the mode BOCCHI drives it in; false when RSR offers no such call.</summary>
+    public bool ArmHenched()
+    {
         if (rsrMode.HasAction) rsrMode.InvokeAction(RsrMode.Henched);
         else if (rsrModeByte.HasAction) rsrModeByte.InvokeAction((byte)RsrMode.Henched);
-        else return;
-        Say(ReviveWatch.RearmLine);
+        else return false;
+        diag?.Invoke("revive: RSR set to Henched");
+        return true;
     }
+
+    /// <summary>A BOCCHI run as the other watches see it: in a horn with BOCCHI loaded.</summary>
+    public bool BocchiRun() => ReviveWatch.Zones.Contains(clientState.TerritoryType) && Bocchi.Instance(pluginInterface) is not null;
 
     private unsafe PromptKind Classify(AddonSelectYesno* prompt)
     {

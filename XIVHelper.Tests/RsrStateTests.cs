@@ -13,6 +13,20 @@ public class RsrStateTests
     }
 
     [Fact]
+    public void Henched_is_wanted_only_when_turning_on_during_a_bocchi_run()
+    {
+        RsrState.BocchiRun = () => true;
+        RsrState.ArmHenched = () => { };
+        Assert.True(RsrState.WantsHenched(turningOn: true));
+        Assert.False(RsrState.WantsHenched(turningOn: false));
+        RsrState.BocchiRun = () => false;
+        Assert.False(RsrState.WantsHenched(turningOn: true));
+        RsrState.BocchiRun = null;
+        RsrState.ArmHenched = null;
+        Assert.False(RsrState.WantsHenched(turningOn: true));
+    }
+
+    [Fact]
     public void Nothing_is_read_while_rsr_is_not_loaded()
     {
         Assert.Null(RsrState.Running);

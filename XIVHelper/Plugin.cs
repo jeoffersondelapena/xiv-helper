@@ -70,6 +70,8 @@ public sealed class Plugin : IDalamudPlugin
         try
         {
             revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write);
+            RsrState.BocchiRun = revive.BocchiRun;
+            RsrState.ArmHenched = () => revive.ArmHenched();
         }
         catch (Exception ex)
         {

@@ -15,6 +15,13 @@ internal static class RsrState
     /// <summary>Asks RSR over IPC; null when nothing answers. Set by the button, kept out of here so this file stays testable.</summary>
     public static Func<bool?>? Probe { get; set; }
 
+    /// <summary>True during a BOCCHI run, when switching RSR on means its Henched mode (BOCCHI picks the targets, no auto-off after
+    /// combat), not Manual; and the call that sets it. Both set by the plugin, null in tests.</summary>
+    public static Func<bool>? BocchiRun { get; set; }
+    public static Action? ArmHenched { get; set; }
+
+    public static bool WantsHenched(bool turningOn) => turningOn && BocchiRun?.Invoke() == true && ArmHenched != null;
+
     /// <summary>True while RSR runs, false while it is off, null when RSR is not loaded. The IPC answer comes from the live
     /// instance, so it wins when there is one; the static is the fallback, re-bound when RSR has been reloaded (2026-11-04:
     /// an update mid-session left the old assembly's static frozen at false).</summary>

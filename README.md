@@ -21,7 +21,10 @@ plugin injects a row the way Wrath Combo does (`XIVHelper/HotbarButton/`, ported
 licence, icons included; see THIRD-PARTY-NOTICES.md). RSR exposes no IPC getter for its state, so the state
 is read from its `DataCenter` statics by reflection; a renamed field shows as "RSR not loaded" until the
 plugin is adjusted. The hooks rest on signatures a game patch can move; when they do, the button fails to
-set up, the plugin logs it and everything else keeps working.
+set up, the plugin logs it and everything else keeps working. During a BOCCHI run (in a horn with BOCCHI loaded) the
+button's "on" sets RSR to Henched over its IPC instead of `/rotation manual`: Henched is the mode BOCCHI drives RSR in,
+where BOCCHI picks the targets and RSR's auto-off after combat does not apply, so a press there matches what BOCCHI
+would have done. "Off" is `/rotation off` as before.
 
 It is a Dalamud plugin that depends on nothing but Dalamud, so it still exists when IINACT or
 Browsingway failed to load. It talks to both over Dalamud's plugin-to-plugin channel (`IINACT.Healthy`,

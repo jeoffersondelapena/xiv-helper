@@ -116,6 +116,12 @@ public sealed unsafe class RsrButton : IDisposable
             log.Warning("RSR button pressed, but Rotation Solver Reborn is not loaded");
             return;
         }
+        var turningOn = actionId == On || (actionId != Off && !running.Value);
+        if (RsrState.WantsHenched(turningOn))
+        {
+            RsrState.ArmHenched!();
+            return;
+        }
         var command = actionId == On ? "/rotation manual" : actionId == Off ? "/rotation off" : RsrState.CommandFor(running.Value);
         commands.ProcessCommand(command);
     }
