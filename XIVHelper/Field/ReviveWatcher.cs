@@ -94,7 +94,7 @@ internal sealed class ReviveWatcher
         var dead = condition[ConditionFlag.Unconscious];
         if (dead && deadSince is null)
         {
-            if (Bocchi.Instance(pluginInterface) is null) return;   // not a BOCCHI run: the player decides
+            if (!OnRun()) return;   // not a BOCCHI run: the player decides
             deadSince = now;
             lastBusy = now;
             lastCaster = 0;
@@ -183,7 +183,7 @@ internal sealed class ReviveWatcher
         bool active;
         try { active = rsrActive.InvokeFunc(); }
         catch (Exception) { return; }   // RSR not loaded: nothing to re-arm
-        if (!ReviveWatch.NeedsRearm(Bocchi.Instance(pluginInterface) is not null, InFateOrCriticalEncounter(), active)) return;
+        if (!ReviveWatch.NeedsRearm(OnRun(), InFateOrCriticalEncounter(), active)) return;
         if (ArmHenched()) Say(ReviveWatch.RearmLine);
     }
 
@@ -197,8 +197,20 @@ internal sealed class ReviveWatcher
         return true;
     }
 
-    /// <summary>A BOCCHI run as the other watches see it: in a horn with BOCCHI loaded.</summary>
-    public bool BocchiRun() => ReviveWatch.Zones.Contains(clientState.TerritoryType) && Bocchi.Instance(pluginInterface) is not null;
+    /// <summary>A BOCCHI run as the other watches see it: in a horn with BOCCHI's automation on.</summary>
+    public bool BocchiRun() => ReviveWatch.Zones.Contains(clientState.TerritoryType) && OnRun();
+
+    private bool OnRun()
+    {
+        var on = Bocchi.OnRun(pluginInterface, out var problem);
+        if (problem is not null)
+        {
+            log.Warning($"BOCCHI's run state is out of reach ({problem}); treating a loaded BOCCHI as a run");
+            diag?.Invoke($"bocchi: run state out of reach: {problem}");
+            chat.PrintError($"XIV Helper: cannot tell whether BOCCHI is running ({problem}); treating it as running while loaded.");
+        }
+        return on;
+    }
 
     private unsafe PromptKind Classify(AddonSelectYesno* prompt)
     {

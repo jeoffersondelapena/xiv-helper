@@ -30,6 +30,7 @@ internal sealed class HornReentry
     private readonly ICallGateSubscriber<object> stopMoving;
     private readonly string togglePath;
     private bool enabled;
+    private bool runSeen;
     private uint wasInHorn;
     private uint target;
     private double? lastTimeLeft;
@@ -101,6 +102,8 @@ internal sealed class HornReentry
         {
             var director = EventFramework.Instance()->GetPublicContentDirector();
             if (director != null) lastTimeLeft = director->ContentTimeLeft;
+            // the automation stops with the kick, so whether a run was on is remembered from inside
+            runSeen = OnRun();
             wasInHorn = territory;
             return;
         }
@@ -111,7 +114,7 @@ internal sealed class HornReentry
         var timeLeft = lastTimeLeft;
         lastTimeLeft = null;
         diag?.Invoke($"horn: left {name}, timer read {timeLeft?.ToString("0.0") ?? "none"} s");
-        if (!enabled || Bocchi.Instance(pluginInterface) is null) return;
+        if (!enabled || !runSeen) return;
         if (!HornWatch.WasKicked(timeLeft))
         {
             diag?.Invoke("horn: " + HornWatch.LeftLine(name, timeLeft));
@@ -210,6 +213,18 @@ internal sealed class HornReentry
                 step = HornStep.Idle;
                 return;
         }
+    }
+
+    private bool OnRun()
+    {
+        var on = Bocchi.OnRun(pluginInterface, out var problem);
+        if (problem is not null)
+        {
+            log.Warning($"BOCCHI's run state is out of reach ({problem}); treating a loaded BOCCHI as a run");
+            diag?.Invoke($"horn: run state out of reach: {problem}");
+            chat.PrintError($"XIV Helper: cannot tell whether BOCCHI is running ({problem}); treating it as running while loaded.");
+        }
+        return on;
     }
 
     private void Enter(HornStep next, DateTime now)

@@ -21,7 +21,7 @@ plugin injects a row the way Wrath Combo does (`XIVHelper/HotbarButton/`, ported
 licence, icons included; see THIRD-PARTY-NOTICES.md). RSR exposes no IPC getter for its state, so the state
 is read from its `DataCenter` statics by reflection; a renamed field shows as "RSR not loaded" until the
 plugin is adjusted. The hooks rest on signatures a game patch can move; when they do, the button fails to
-set up, the plugin logs it and everything else keeps working. During a BOCCHI run (in a horn with BOCCHI loaded) the
+set up, the plugin logs it and everything else keeps working. During a BOCCHI run (in a horn with BOCCHI's automation on) the
 button's "on" sets RSR to Henched over its IPC instead of `/rotation manual`: Henched is the mode BOCCHI drives RSR in,
 where BOCCHI picks the targets and RSR's auto-off after combat does not apply, so a press there matches what BOCCHI
 would have done. "Off" is `/rotation off` as before.
@@ -36,7 +36,7 @@ plugins) and reaches for Dalamud's plugin manager only to load a plugin that is 
 | `XIVHelper/Doctor.cs` | the decision: which steps, in which order (pure, tested) |
 | `XIVHelper/PluginControl.cs` | load or reload another plugin through Dalamud's internals |
 | `XIVHelper/Plugin.cs` | the command, the IPC calls, the chat lines |
-| `XIVHelper/Field/Bocchi.cs` | finds BOCCHI's loaded plugin object, the "is this a BOCCHI run" test the two watches use |
+| `XIVHelper/Field/Bocchi.cs` | reads whether one of BOCCHI's runs is on (its automator, through its service container); the "is this a BOCCHI run" test the watches and the button use |
 | `XIVHelper/Field/ReviveWatch.cs` | which revive dialog to answer when, and the thank-you phrase (pure, tested) |
 | `XIVHelper/Field/ReviveWatcher.cs` | the half-second poll while dead in the Crescent, the chat line, the `/say` |
 | `XIVHelper/Field/HornWatch.cs` | when a zone change counts as the timer's kick, the menu match, the timeouts (pure, tested) |
@@ -56,7 +56,9 @@ after that has stopped closing, and the watcher ends it. The `heartbeat:` prefix
 ## Raises and returns during BOCCHI runs
 
 BOCCHI's own dead state only waits: no answer to the raise prompt, no way back to camp (its Return code refuses while
-unconscious). So in the Occult Crescent (South or North Horn), while BOCCHI is loaded, the plugin takes over the revive
+unconscious). So in the Occult Crescent (South or North Horn), while one of BOCCHI's runs is on (Illegal Mode, Pots &
+Treasure or Completionist, read from BOCCHI's own automator; a loaded but idle BOCCHI does not count, and if that
+state cannot be read the plugin says so once and treats a loaded BOCCHI as running), the plugin takes over the revive
 dialogs. A raise offer ("Accept Raise…", told apart from the return dialog by the game's own Addon texts, rows 112 and
 197/117, so any client language works) is accepted at once. Once back on its feet with Transcendent on (which only a
 raise grants, never a return) it sends `/say` with the auto-translate phrase "Thank you." (Completion group 2, row 216)
@@ -83,8 +85,9 @@ On by default: it only ever acts on the timer's kick during a BOCCHI run. `/help
 
 While the character is in South or North Horn the plugin reads the instance timer from the game's public content director every
 half second. When the zone changes with that reading at 20 s or less the timer did it; a voluntary leave, a disconnect
-or a teleport out shows minutes or hours left and is left alone. BOCCHI must be loaded; nothing else gates it, the
-currencies are worth the trips after the demiatma are done. The way back follows what the game shows: land in Phantom Village (territory 1269 or 1278), walk to the Expedition
+or a teleport out shows minutes or hours left and is left alone. A BOCCHI run must have been on inside (remembered from
+the last poll before the kick, since the automation stops with it); nothing else gates it, the currencies are worth
+the trips after the demiatma are done. The way back follows what the game shows: land in Phantom Village (territory 1269 or 1278), walk to the Expedition
 Coordinator Jeffroy (NPC 1053611) with vnavmesh if he is more than 6 y away, interact, pick the menu entry that names
 the horn you were thrown out of (the game's SelectString), confirm the yes/no that names it, press Commence on the duty
 window (ContentsFinderConfirm, callback 8), wait for that horn to load, then after 5 s send `/bocchi illegal on`.
