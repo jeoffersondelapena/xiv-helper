@@ -16,6 +16,12 @@ public readonly record struct Report(bool Loaded, bool Healthy, string Status)
 
 public static class Doctor
 {
+    public const string RepairWords = "overlays fix";
+
+    // two words: "overlays" alone says nothing of what it does, and leaves room for more
+    public static bool IsRepair(string args) =>
+        string.Join(' ', args.Split(' ', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)) == RepairWords;
+
     // Always both, parser first; trusting the self-checks cost a second press.
     public static IReadOnlyList<Step> Plan(Report iinact, Report browsingway) => new[]
     {

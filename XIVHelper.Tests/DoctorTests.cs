@@ -23,6 +23,16 @@ public class DoctorTests
         Assert.Equal(new[] { Step.LoadIinact, Step.LoadBrowsingway }, Doctor.Plan(Missing, Missing));
     }
 
+    [Theory]
+    [InlineData("overlays fix", true)]
+    [InlineData("  overlays   fix ", true)]
+    [InlineData("overlays", false)]    // the name until 2026-11-18
+    [InlineData("fix", false)]
+    [InlineData("", false)]
+    [InlineData("overlays fix now", false)]
+    public void Only_the_two_words_repair(string args, bool repairs) =>
+        Assert.Equal(repairs, Doctor.IsRepair(args));
+
     [Fact]
     public void The_summary_names_both_layers()
     {

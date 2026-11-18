@@ -6,10 +6,10 @@ Renamed from Overlay Doctor on 2026-09-29: it now fronts the overlays, the Mac-s
 One in-game command that brings the ACT overlay stack back and relays the Mac's notes: `/helper`.
 
 ```
-/helper            how the IINACT parser and the Browsingway renderer are right now
-/helper overlays   restart whichever of the two is unwell, or load one that is missing (was /helper fix until 2026-11-18)
-/helper button     a window with the RSR hotbar button to drag onto a hotbar slot
-/helper horn       re-entry into South or North Horn after its timer: off, on, now [north] (go in from Phantom Village at once), or the state
+/helper                how the IINACT parser and the Browsingway renderer are right now
+/helper overlays fix   restart whichever of the two is unwell, or load one that is missing (was /helper fix, then /helper overlays, until 2026-11-18)
+/helper button         a window with the RSR hotbar button to drag onto a hotbar slot
+/helper horn           re-entry into South or North Horn after its timer: off, on, now [north] (go in from Phantom Village at once), or the state
 ```
 
 ## The RSR hotbar button
