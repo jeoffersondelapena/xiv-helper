@@ -12,6 +12,7 @@ namespace XIVHelper;
 public sealed class Plugin : IDalamudPlugin
 {
     private const string Command = "/helper";
+    private const string RepairWord = "overlays";
     private const string Reason = "requested by XIV Helper";
 
     private readonly IDalamudPluginInterface pluginInterface;
@@ -97,7 +98,7 @@ public sealed class Plugin : IDalamudPlugin
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "status: how the parser and the renderer are; fix: restart or load whatever is unwell; button: the RSR hotbar button; horn on|off: go back into the horn after its timer",
+            HelpMessage = "status: how the parser and the renderer are; overlays: restart or load whichever of the two is unwell; button: the RSR hotbar button; horn on|off: go back into the horn after its timer",
         });
 
         try
@@ -345,8 +346,13 @@ public sealed class Plugin : IDalamudPlugin
         var (iinact, browsingway) = Probe();
         chat.Print($"XIV Helper: {Doctor.Summary(iinact, browsingway)}.");
         diag?.Write($"/helper {args.Trim()}: {Doctor.Summary(iinact, browsingway)}");
-        if (args.Trim() != "fix")
+        if (args.Trim() != RepairWord)
+        {
+            // "fix" until 2026-11-18: a macro still sending it would otherwise read the status and wonder
+            if (args.Trim().Length > 0)
+                chat.Print($"XIV Helper: \"{args.Trim()}\" is not a command here; the overlays are repaired with {Command} {RepairWord}.");
             return;
+        }
 
         var plan = Doctor.Plan(iinact, browsingway);
         chat.Print("XIV Helper: " + string.Join(", ", plan.Select(Doctor.Describe)) + ".");

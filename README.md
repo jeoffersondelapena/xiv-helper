@@ -7,7 +7,7 @@ One in-game command that brings the ACT overlay stack back and relays the Mac's 
 
 ```
 /helper            how the IINACT parser and the Browsingway renderer are right now
-/helper fix        restart whichever layer is unwell, or load a plugin that is missing
+/helper overlays   restart whichever of the two is unwell, or load one that is missing (was /helper fix until 2026-11-18)
 /helper button     a window with the RSR hotbar button to drag onto a hotbar slot
 /helper horn       re-entry into South or North Horn after its timer: off, on, now [north] (go in from Phantom Village at once), or the state
 ```
