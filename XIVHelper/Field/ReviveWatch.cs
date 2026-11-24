@@ -116,7 +116,7 @@ public static class ReviveWatch
     public static bool IsBocchiPreset(string? active) =>
         active is not null && (active.StartsWith("BOCCHI AI ", StringComparison.Ordinal) || active.StartsWith("BOCCHI AR ", StringComparison.Ordinal));
 
-    public const string DefendLine = "a stray fight with nothing armed; RSR and BossMod Reborn set the way BOCCHI sets them.";
+    public const string DefendLine = "a mob attacked outside BOCCHI's activities; RSR and BossMod Reborn switched on to fight back, the way BOCCHI sets them. Nothing to do.";
 
     public static string DefenceNote(string preset, DateTime at) =>
         $"BossMod Reborn has no preset named \"{preset}\" since {at:HH:mm}; a stray fight gets RSR alone, which only hits a target picked by hand";
@@ -131,7 +131,7 @@ public static class ReviveWatch
         _ => false,
     };
 
-    public const string RearmLine = "RSR had switched itself off on the revive; set back to BOCCHI's mode.";
+    public const string RearmLine = "RSR switched itself off on the revive; switched back on in BOCCHI's mode. Nothing to do.";
 
     // attention notes: lowercase problem, time, consequence; XIV Helper repeats them with the paste-it-on instruction until cleared
     public static string BocchiNote(string problem, DateTime at) =>
