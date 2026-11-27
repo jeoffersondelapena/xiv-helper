@@ -11,7 +11,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace XIVHelper.HotbarButton;
 
-/// <summary>One hotbar action that shows whether Rotation Solver Reborn is running and flips it between Off and Manual.</summary>
+/// <summary>One hotbar action that shows whether Rotation Solver Reborn is running and switches it on and off: Manual, or Auto in Frontline.</summary>
 public sealed unsafe class RsrButton : IDisposable
 {
     public const uint Toggle = 1_100_001;
@@ -29,6 +29,7 @@ public sealed unsafe class RsrButton : IDisposable
     private readonly IFramework framework;
     private bool? running;
     private readonly IPluginLog log;
+    private readonly Action<string>? trace;
     private readonly CustomActionManager manager;
     private readonly Hook<GetAdjustedActionIdDelegate> adjustedHook;
     private readonly Hook<IsActionReplaceableDelegate> replaceableHook;
@@ -39,13 +40,14 @@ public sealed unsafe class RsrButton : IDisposable
     private bool dragging;
 
     public RsrButton(IDalamudPluginInterface pluginInterface, ISigScanner sig, IGameInteropProvider hooks, ITextureProvider textures,
-                     IFramework framework, ICommandManager commands, IClientState client, IObjectTable objects, IPluginLog log)
+                     IFramework framework, ICommandManager commands, IClientState client, IObjectTable objects, IPluginLog log, Action<string>? trace = null)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
         this.client = client;
         this.objects = objects;
         this.log = log;
+        this.trace = trace;
         manager = new CustomActionManager(sig, hooks, textures, framework, log);
         var active = pluginInterface.GetIpcSubscriber<bool>("RotationSolverReborn.AutorotationActive");
         RsrState.Probe = () =>
@@ -58,9 +60,9 @@ public sealed unsafe class RsrButton : IDisposable
         this.framework = framework;
         framework.Update += Refresh;
         var resources = Path.Combine(pluginInterface.AssemblyLocation.DirectoryName!, "Resources");
-        manager.Register(new CustomAction(Toggle, "RSR Toggle", "Switches Rotation Solver Reborn between Off and Manual.", ToggleIcon, Path.Combine(resources, "RsrToggle.png")));
-        manager.Register(new CustomAction(On, "RSR Manual", "Rotation Solver Reborn is running in Manual mode; press to switch it off.", OnIcon, Path.Combine(resources, "RsrOn.png")));
-        manager.Register(new CustomAction(Off, "RSR Off", "Rotation Solver Reborn is off; press to start it in Manual mode.", OffIcon, Path.Combine(resources, "RsrOff.png")));
+        manager.Register(new CustomAction(Toggle, "RSR Toggle", "Switches Rotation Solver Reborn on and off.", ToggleIcon, Path.Combine(resources, "RsrToggle.png")));
+        manager.Register(new CustomAction(On, "RSR On", "Rotation Solver Reborn is running; press to switch it off.", OnIcon, Path.Combine(resources, "RsrOn.png")));
+        manager.Register(new CustomAction(Off, "RSR Off", "Rotation Solver Reborn is off; press to start it.", OffIcon, Path.Combine(resources, "RsrOff.png")));
         adjustedHook = hooks.HookFromAddress<GetAdjustedActionIdDelegate>(ActionManager.Addresses.GetAdjustedActionId.Value, GetAdjustedDetour);
         // the hotbar only asks for an adjusted action (and its icon) when the base action is flagged replaceable, like a combo step
         replaceableHook = hooks.HookFromAddress<IsActionReplaceableDelegate>(sig.ScanText(SigIsActionReplaceable), IsActionReplaceableDetour);
@@ -116,14 +118,13 @@ public sealed unsafe class RsrButton : IDisposable
             log.Warning("RSR button pressed, but Rotation Solver Reborn is not loaded");
             return;
         }
-        var turningOn = actionId == On || (actionId != Off && !running.Value);
-        if (RsrState.WantsHenched(turningOn))
-        {
+        var frontline = RsrState.InFrontline;
+        var command = RsrState.PressCommand(running.Value, frontline);
+        trace?.Invoke($"RSR button: {command ?? "Henched"} (action {actionId}, running {running.Value}, frontline {frontline}, territory {client.TerritoryType})");
+        if (command is null)
             RsrState.ArmHenched!();
-            return;
-        }
-        var command = actionId == On ? "/rotation manual" : actionId == Off ? "/rotation off" : RsrState.CommandFor(running.Value);
-        commands.ProcessCommand(command);
+        else
+            commands.ProcessCommand(command);
     }
 
     private void ReceiveEventDetour(AddonActionBarBase* self, AtkEventType eventType, int eventParam, AtkEvent* atkEvent, AtkEventData* atkEventData)
@@ -141,7 +142,7 @@ public sealed unsafe class RsrButton : IDisposable
             return;
         if (ImGui.Begin("XIV Helper: RSR button", ref windowOpen, ImGuiWindowFlags.AlwaysAutoResize))
         {
-            var state = running switch { true => "Manual (running)", false => "Off", null => "RSR not loaded" };
+            var state = running switch { true => "Running", false => "Off", null => "RSR not loaded" };
             ImGui.TextUnformatted($"Rotation Solver Reborn: {state}");
             ImGui.TextUnformatted("Drag this icon onto a hotbar slot. The slot then shows the state and a press flips it.");
             if (manager.IconTextures.TryGetValue(ToggleIcon, out var tex) && tex.TryGetWrap(out var wrap, out _))

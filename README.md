@@ -16,15 +16,24 @@ One in-game command that brings the ACT overlay stack back and relays the Mac's 
 
 Rotation Solver Reborn runs in Manual mode here and is started and stopped by hand, so the plugin adds one
 action to the game's hotbars: it shows whether RSR is running (two icons) and a press flips it between Off
-and Manual through `/rotation manual` and `/rotation off`. The game never shipped such an action, so the
+and Manual through `/rotation manual` and `/rotation off` (Auto in Frontline, below). The game never shipped such an action, so the
 plugin injects a row the way Wrath Combo does (`XIVHelper/HotbarButton/`, ported under its BSD 3-Clause
-licence, icons included; see THIRD-PARTY-NOTICES.md). RSR exposes no IPC getter for its state, so the state
-is read from its `DataCenter` statics by reflection; a renamed field shows as "RSR not loaded" until the
-plugin is adjusted. The hooks rest on signatures a game patch can move; when they do, the button fails to
+licence, icons included; see THIRD-PARTY-NOTICES.md). The state comes from RSR's `AutorotationActive` IPC
+call; its `DataCenter` statics, read by reflection, are only the fallback while that call does not answer.
+The hooks rest on signatures a game patch can move; when they do, the button fails to
 set up, the plugin logs it and everything else keeps working. During a BOCCHI run (in a horn with BOCCHI's automation on) the
 button's "on" sets RSR to Henched over its IPC instead of `/rotation manual`: Henched is the mode BOCCHI drives RSR in,
 where BOCCHI picks the targets and RSR's auto-off after combat does not apply, so a press there matches what BOCCHI
 would have done. "Off" is `/rotation off` as before.
+
+In Frontline the button's "on" is Auto instead of Manual, because there RSR is meant to pick the targets. A press
+sends `/rotation auto LowHP`: Auto on RSR's Low HP target type, the enemy with the least HP in reach. The type is
+named in the command because RSR would otherwise use whichever type its info-bar click last set (the last of its
+list); if the type is not on RSR's list, RSR says so in chat and does not start. A press while RSR runs sends
+`/rotation off`. Frontline is recognised by the zone's `TerritoryIntendedUse` (18 for all six Frontline zones, five maps
+of which the Borderland Ruins has two, and for no other zone; read from the game's tables on 2026-11-27) and the zone is read at every press, so the button is
+back on Manual anywhere else; Crystalline Conflict, Rival Wings and the Wolves' Den stay on Manual. Every press is
+written to the diagnostic log with the command, the state and the zone.
 
 It is a Dalamud plugin that depends on nothing but Dalamud, so it still exists when IINACT or
 Browsingway failed to load. It talks to both over Dalamud's plugin-to-plugin channel (`IINACT.Healthy`,

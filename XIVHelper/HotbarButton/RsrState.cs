@@ -29,7 +29,30 @@ internal static class RsrState
 
     public static bool? Manual => Read(ref manual, "IsManual");
 
-    public static string CommandFor(bool running) => running ? "/rotation off" : "/rotation manual";
+    /// <summary>The game's TerritoryIntendedUse row shared by every Frontline map and by no other zone (game tables, 2026-11-27).</summary>
+    public const uint FrontlineUse = 18;
+
+    /// <summary>The intended use of the zone the player stands in; set by the plugin, null in tests.</summary>
+    public static Func<uint>? ZoneUse { get; set; }
+
+    /// <summary>Read at every press, so the button follows the zone.</summary>
+    public static bool InFrontline
+    {
+        get
+        {
+            try { return ZoneUse?.Invoke() == FrontlineUse; }
+            catch (Exception) { return false; }   // read inside the hooked UseAction: a failed table lookup must not escape into the game
+        }
+    }
+
+    /// <summary>Low HP is named in the command; RSR would otherwise use the type its info-bar click last set.</summary>
+    public static string StartCommand(bool frontline) => frontline ? "/rotation auto LowHP" : "/rotation manual";
+
+    public static string CommandFor(bool running, bool frontline = false) => running ? "/rotation off" : StartCommand(frontline);
+
+    /// <summary>The command a press sends; null means arm Henched, which a BOCCHI run takes before the zone rule.</summary>
+    public static string? PressCommand(bool running, bool frontline)
+        => WantsHenched(turningOn: !running) ? null : CommandFor(running, frontline);
 
     private static bool? Read(ref PropertyInfo? property, string name)
     {

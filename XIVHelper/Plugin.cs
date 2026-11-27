@@ -67,6 +67,7 @@ public sealed class Plugin : IDalamudPlugin
         frameWatch = diag is null ? null : new FrameWatch(diag.Write);
         LoginReport.Instruction = ReadInstruction();
         diag?.Write($"XIV Helper {typeof(Plugin).Assembly.GetName().Version} loaded, pid {Environment.ProcessId}");
+        RsrState.ZoneUse = () => data.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().TryGetRow(clientState.TerritoryType, out var zone) ? zone.TerritoryIntendedUse.RowId : 0;
         try
         {
             revive = new ReviveWatcher(pluginInterface, clientState, objects, condition, gameGui, chat, log, data, diag is null ? null : diag.Write,
@@ -102,7 +103,7 @@ public sealed class Plugin : IDalamudPlugin
 
         try
         {
-            rsrButton = new RsrButton(pluginInterface, sigScanner, hooks, textures, framework, commands, clientState, objects, log);
+            rsrButton = new RsrButton(pluginInterface, sigScanner, hooks, textures, framework, commands, clientState, objects, log, diag is null ? null : diag.Write);
             AttentionFile.Set(AttentionPath, "RSRButton", null);
         }
         catch (Exception ex)
@@ -132,6 +133,7 @@ public sealed class Plugin : IDalamudPlugin
         commands.RemoveHandler(Command);
         pluginInterface.UiBuilder.OpenMainUi -= OpenButtonWindow;
         rsrButton?.Dispose();
+        RsrState.ZoneUse = null;
         frameWatch?.Dispose();
         diag?.Write(DiagLog.UnloadingLine(GameClosing()));
         diag?.Dispose();
